@@ -1,0 +1,45 @@
+# Build output
+bin/
+obj/
+
+# Distribution packages (generated artifacts)
+AppPackages/
+dist/*.msix
+dist/*.msixbundle
+dist/*.zip
+
+# Keep dist certificates and scripts in source control
+!dist/*.cer
+!dist/*.ps1
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docobj
+*.userprefs
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+
+# Rider
+.idea/
+*.sln.iml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & temp
+*.log
+*.tmp
+*.cache
+
+# Secrets / certificates with private key
+dist/*.pfx

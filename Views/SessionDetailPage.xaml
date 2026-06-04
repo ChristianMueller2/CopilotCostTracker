@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CopilotCostTracker.ViewModels"
+             xmlns:models="clr-namespace:CopilotCostTracker.Models"
+             x:Class="CopilotCostTracker.Views.SessionDetailPage"
+             x:DataType="vm:SessionDetailViewModel"
+             BackgroundColor="{StaticResource SurfaceColor}">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- ── Header ───────────────────────────────────────────────── -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Padding="16,14,16,10" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    Text="← Back"
+                    Command="{Binding GoBackCommand}"
+                    Style="{StaticResource GhostButtonStyle}"
+                    FontSize="13"
+                    HeightRequest="32"
+                    Padding="10,0" />
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                <Label Text="{Binding Title}"
+                       FontSize="15" FontAttributes="Bold"
+                       Style="{StaticResource TextPrimaryStyle}" />
+                <Label Text="Session events"
+                       FontSize="11"
+                       Style="{StaticResource TextTertiaryStyle}" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- ── Filter bar ──────────────────────────────────────────── -->
+        <Grid Grid.Row="1" Padding="16,6,16,6">
+            <SearchBar Placeholder="Filter events…"
+                       Text="{Binding FilterText}"
+                       BackgroundColor="{StaticResource SurfaceSecondaryColor}" />
+        </Grid>
+
+        <BoxView Grid.Row="2" HeightRequest="0.5" Color="{StaticResource BorderColor}" Margin="16,0" />
+
+        <!-- ── Loading indicator ────────────────────────────────────── -->
+        <ActivityIndicator Grid.Row="3"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           Color="{StaticResource AccentBlueColor}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+
+        <!-- ── Event list ────────────────────────────────────────────── -->
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding FilteredEvents}"
+                        IsVisible="{Binding IsNotLoading}"
+                        Margin="16,8">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:SessionEvent">
+                    <Border Margin="0,0,0,6"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="12,10"
+                            BackgroundColor="{StaticResource SurfaceSecondaryColor}">
+                        <Grid ColumnDefinitions="6,*" ColumnSpacing="10">
+
+                            <!-- Category colour bar -->
+                            <BoxView Grid.Column="0"
+                                     CornerRadius="3"
+                                     VerticalOptions="Fill"
+                                     Color="{Binding Category, Converter={StaticResource EventCategoryColorConverter}}" />
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+
+                                <!-- Type + timestamp -->
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding Type}"
+                                           FontSize="11" FontAttributes="Bold"
+                                           Style="{StaticResource TextSecondaryStyle}" />
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Timestamp, StringFormat='{0:HH:mm:ss}'}"
+                                           FontSize="10"
+                                           Style="{StaticResource TextTertiaryStyle}"
+                                           HorizontalOptions="End" />
+                                </Grid>
+
+                                <!-- Summary -->
+                                <Label Text="{Binding Summary}"
+                                       FontSize="13"
+                                       Style="{StaticResource TextPrimaryStyle}"
+                                       LineBreakMode="WordWrap" />
+
+                                <!-- Detail (collapsible via expander) -->
+                                <Grid IsVisible="{Binding HasDetail}">
+                                    <Border StrokeShape="RoundRectangle 6"
+                                            Padding="8,6"
+                                            BackgroundColor="{StaticResource SurfaceColor}">
+                                        <Label Text="{Binding Detail}"
+                                               FontSize="11"
+                                               FontFamily="Consolas"
+                                               Style="{StaticResource TextTertiaryStyle}"
+                                               LineBreakMode="WordWrap" />
+                                    </Border>
+                                </Grid>
+
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <CollectionView.EmptyView>
+                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center"
+                                     Spacing="8" Padding="0,60">
+                    <Label Text="No events found"
+                           FontSize="15" HorizontalOptions="Center"
+                           Style="{StaticResource TextSecondaryStyle}" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
+
+    </Grid>
+</ContentPage>

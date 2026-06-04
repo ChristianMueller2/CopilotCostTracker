@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:CopilotCostTracker.ViewModels"
+             xmlns:models="clr-namespace:CopilotCostTracker.Models"
+             x:Class="CopilotCostTracker.Views.ByModelPage"
+             x:DataType="viewmodels:MainViewModel"
+             Title="By model"
+             BackgroundColor="{StaticResource SurfaceColor}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+
+            <!-- Header row -->
+            <Grid ColumnDefinitions="*,90,90,90,90,80" Padding="0,4">
+                <Label Grid.Column="0" Text="Model"       FontSize="11" Style="{StaticResource TextTertiaryStyle}" />
+                <Label Grid.Column="1" Text="Input"       FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+                <Label Grid.Column="2" Text="Output"      FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+                <Label Grid.Column="3" Text="Cache read"  FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+                <Label Grid.Column="4" Text="Cache write" FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+                <Label Grid.Column="5" Text="Total"       FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+            </Grid>
+
+            <BoxView HeightRequest="0.5" Color="{StaticResource BorderColor}" />
+
+            <!-- Per-model rows via BindableLayout -->
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding CostByModelFull}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:ModelCostDetail">
+                        <Grid ColumnDefinitions="*,90,90,90,90,80" Padding="0,8">
+                            <Label Grid.Column="0"
+                                   Text="{Binding Model}"
+                                   FontSize="13"
+                                   Style="{StaticResource TextPrimaryStyle}" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding InputCostUsd, StringFormat='${0:F4}'}"
+                                   FontSize="12" HorizontalOptions="End"
+                                   Style="{StaticResource TextSecondaryStyle}" />
+                            <Label Grid.Column="2"
+                                   Text="{Binding OutputCostUsd, StringFormat='${0:F4}'}"
+                                   FontSize="12" HorizontalOptions="End"
+                                   Style="{StaticResource TextSecondaryStyle}" />
+                            <Label Grid.Column="3"
+                                   Text="{Binding CacheReadCostUsd, StringFormat='${0:F4}'}"
+                                   FontSize="12" HorizontalOptions="End"
+                                   Style="{StaticResource TextSecondaryStyle}" />
+                            <Label Grid.Column="4"
+                                   Text="{Binding CacheWriteCostUsd, StringFormat='${0:F4}'}"
+                                   FontSize="12" HorizontalOptions="End"
+                                   Style="{StaticResource TextSecondaryStyle}" />
+                            <Label Grid.Column="5"
+                                   Text="{Binding TotalCostUsd, StringFormat='${0:F4}'}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource AccentGreenColor}"
+                                   HorizontalOptions="End" />
+                        </Grid>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

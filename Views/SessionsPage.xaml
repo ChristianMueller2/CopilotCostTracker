@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:CopilotCostTracker.ViewModels"
+             x:Class="CopilotCostTracker.Views.SessionsPage"
+             x:DataType="viewmodels:MainViewModel"
+             Title="Sessions"
+             BackgroundColor="{StaticResource SurfaceColor}">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- Filter bar -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,*"
+              ColumnSpacing="8" Padding="16,12,16,0">
+            <Button Grid.Column="0"
+                    Text="All"
+                    Command="{Binding SetTabFilterCommand}" CommandParameter="All"
+                    Style="{Binding ActiveTabFilter, Converter={StaticResource TabFilterStyleConverter}, ConverterParameter='All'}" />
+            <Button Grid.Column="1"
+                    Text="Today"
+                    Command="{Binding SetTabFilterCommand}" CommandParameter="Today"
+                    Style="{Binding ActiveTabFilter, Converter={StaticResource TabFilterStyleConverter}, ConverterParameter='Today'}" />
+            <Button Grid.Column="2"
+                    Text="This week"
+                    Command="{Binding SetTabFilterCommand}" CommandParameter="Week"
+                    Style="{Binding ActiveTabFilter, Converter={StaticResource TabFilterStyleConverter}, ConverterParameter='Week'}" />
+            <Button Grid.Column="3"
+                    Text="This month"
+                    Command="{Binding SetTabFilterCommand}" CommandParameter="Month"
+                    Style="{Binding ActiveTabFilter, Converter={StaticResource TabFilterStyleConverter}, ConverterParameter='Month'}" />
+            <SearchBar Grid.Column="4"
+                       Placeholder="Filter by repo or model…"
+                       Text="{Binding FilterText}"
+                       BackgroundColor="{StaticResource SurfaceSecondaryColor}" />
+        </Grid>
+
+        <!-- Header -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,80,68,68,68,72" Padding="24,8,16,0">
+            <Label Grid.Column="0" Text="Repository / model" FontSize="11" Style="{StaticResource TextTertiaryStyle}" />
+            <Label Grid.Column="1" Text="Time"   FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+            <Label Grid.Column="2" Text="Input"  FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+            <Label Grid.Column="3" Text="Output" FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+            <Label Grid.Column="4" Text="Cache"  FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+            <Label Grid.Column="5" Text="Total"  FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
+        </Grid>
+
+        <BoxView Grid.Row="2" HeightRequest="0.5" Margin="16,4"
+                 Color="{StaticResource BorderColor}" />
+
+        <CollectionView Grid.Row="3"
+                        x:Name="SessionList"
+                        ItemsSource="{Binding FilteredSessions}"
+                        ItemTemplate="{StaticResource SessionRowTemplate}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnSessionSelected"
+                        Margin="16,0">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center"
+                                     Spacing="8" Padding="0,40">
+                    <Label Text="No sessions found" FontSize="15"
+                           HorizontalOptions="Center"
+                           Style="{StaticResource TextSecondaryStyle}" />
+                    <Label Text="Add a folder to get started" FontSize="12"
+                           HorizontalOptions="Center"
+                           Style="{StaticResource TextTertiaryStyle}" />
+                    <Button Text="Add folder"
+                            Command="{Binding GoToFoldersCommand}"
+                            Style="{StaticResource GhostButtonStyle}"
+                            HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
+    </Grid>
+
+</ContentPage>
+

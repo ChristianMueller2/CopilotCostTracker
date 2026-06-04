@@ -1,0 +1,6 @@
+<linker>
+  <assembly fullname="CopilotCostTracker" preserve="all" />
+  <assembly fullname="Microsoft.Maui" preserve="all" />
+  <assembly fullname="Microsoft.Maui.Controls" preserve="all" />
+  <assembly fullname="System.Windows.Forms" preserve="all" />
+</linker>

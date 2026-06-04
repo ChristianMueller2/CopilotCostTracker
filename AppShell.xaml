@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:local="clr-namespace:CopilotCostTracker"
+       xmlns:views="clr-namespace:CopilotCostTracker.Views"
+       xmlns:viewmodels="clr-namespace:CopilotCostTracker.ViewModels"
+       x:Class="CopilotCostTracker.AppShell"
+       x:DataType="viewmodels:MainViewModel"
+       Shell.NavBarIsVisible="False"
+       FlyoutBehavior="Locked"
+       FlyoutWidth="220"
+       FlyoutBackgroundColor="{StaticResource SurfaceSecondaryColor}">
+
+    <!-- Force light text regardless of system theme -->
+    <Shell.ItemTemplate>
+        <DataTemplate>
+            <Grid HeightRequest="44" Padding="0">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="Transparent" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Selected">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{StaticResource BorderColor}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </VisualStateManager.VisualStateGroups>
+                <Label Text="{Binding Title}"
+                       Padding="16,0"
+                       TextColor="{StaticResource TextPrimaryColor}"
+                       FontSize="14"
+                       VerticalOptions="Center" />
+            </Grid>
+        </DataTemplate>
+    </Shell.ItemTemplate>
+
+    <!-- ─── Flyout header ─────────────────────── -->
+    <Shell.FlyoutHeader>
+        <VerticalStackLayout Padding="16,20,16,8" Spacing="2">
+            <Label Text="Copilot"
+                   FontSize="18" FontAttributes="Bold"
+                   TextColor="{StaticResource AccentBlueColor}" />
+            <Label Text="Cost Tracker"
+                   FontSize="11"
+                   TextColor="{StaticResource TextSecondaryColor}" />
+        </VerticalStackLayout>
+    </Shell.FlyoutHeader>
+
+    <!-- ─── Pages ────────────────────────────── -->
+    <FlyoutItem Title="Overview" Route="main">
+        <ShellContent ContentTemplate="{DataTemplate local:MainPage}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Sessions" Route="sessions">
+        <ShellContent ContentTemplate="{DataTemplate views:SessionsPage}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="By model" Route="bymodel">
+        <ShellContent ContentTemplate="{DataTemplate views:ByModelPage}" />
+    </FlyoutItem>
+
+    <!-- ─── Flyout footer ─────────────────────── -->
+    <Shell.FlyoutFooter>
+        <VerticalStackLayout Padding="12,8" Spacing="4">
+            <BoxView HeightRequest="0.5" Color="{StaticResource BorderColor}" Margin="0,0,0,4" />
+            <Button Text="＋ Add folder"
+                    Command="{Binding GoToFoldersCommand}"
+                    Style="{StaticResource GhostButtonStyle}"
+                    HorizontalOptions="Fill"
+                    FontSize="13"
+                    HeightRequest="36" />
+            <Label Text="{Binding LastUpdated}"
+                   FontSize="10"
+                   Style="{StaticResource TextTertiaryStyle}"
+                   Margin="4,2,0,0" />
+        </VerticalStackLayout>
+    </Shell.FlyoutFooter>
+
+</Shell>

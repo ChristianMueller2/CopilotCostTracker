@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:conv="clr-namespace:CopilotCostTracker.Converters"
+             xmlns:models="clr-namespace:CopilotCostTracker.Models"
+             x:Class="CopilotCostTracker.App">
+    <Application.Resources>
+        <ResourceDictionary>
+
+            <!-- ── Colors (dark mode only) ──────────────────────────────────── -->
+            <Color x:Key="White">#FFFFFF</Color>
+            <Color x:Key="SurfaceColor">#1C1C1E</Color>
+            <Color x:Key="SurfaceSecondaryColor">#2C2C2E</Color>
+            <Color x:Key="BorderColor">#3A3A3C</Color>
+            <Color x:Key="TextPrimaryColor">#F2F2F7</Color>
+            <Color x:Key="TextSecondaryColor">#AEAEB2</Color>
+            <Color x:Key="TextTertiaryColor">#636366</Color>
+            <Color x:Key="AccentGreenColor">#7EC636</Color>
+            <Color x:Key="AccentBlueColor">#4DA3FF</Color>
+            <Color x:Key="SurfaceDarkColor">#1C1C1E</Color>
+
+            <!-- ── Converters ─────────────────────────────────────────────────── -->
+            <conv:TokensToShortStringConverter x:Key="TokensToShortStringConverter" />
+            <conv:PathToNameConverter          x:Key="PathToNameConverter" />
+            <conv:FolderIndexColorConverter    x:Key="FolderIndexColorConverter" />
+            <conv:TabFilterStyleConverter      x:Key="TabFilterStyleConverter" />
+            <conv:EventCategoryColorConverter  x:Key="EventCategoryColorConverter" />
+
+            <!-- ── Text styles ────────────────────────────────────────────────── -->
+            <Style x:Key="TextPrimaryStyle" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource TextPrimaryColor}" />
+            </Style>
+            <Style x:Key="TextSecondaryStyle" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource TextSecondaryColor}" />
+            </Style>
+            <Style x:Key="TextTertiaryStyle" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource TextTertiaryColor}" />
+            </Style>
+
+            <!-- ── Ghost button ───────────────────────────────────────────────── -->
+            <Style x:Key="GhostButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="TextColor"       Value="{StaticResource TextSecondaryColor}" />
+                <Setter Property="BorderColor"     Value="Transparent" />
+                <Setter Property="FontSize"        Value="12" />
+                <Setter Property="Padding"         Value="4,2" />
+            </Style>
+
+            <!-- ── Pill button (tab filter) ───────────────────────────────────── -->
+            <Style x:Key="PillButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource SurfaceSecondaryColor}" />
+                <Setter Property="TextColor"       Value="{StaticResource TextSecondaryColor}" />
+                <Setter Property="BorderColor"     Value="Transparent" />
+                <Setter Property="CornerRadius"    Value="20" />
+                <Setter Property="FontSize"        Value="12" />
+                <Setter Property="Padding"         Value="10,4" />
+                <Setter Property="Margin"          Value="0" />
+            </Style>
+            <Style x:Key="PillButtonActiveStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource SurfaceSecondaryColor}" />
+                <Setter Property="TextColor"       Value="{StaticResource TextPrimaryColor}" />
+                <Setter Property="BorderColor"     Value="{StaticResource BorderColor}" />
+                <Setter Property="BorderWidth"     Value="1" />
+                <Setter Property="CornerRadius"    Value="20" />
+                <Setter Property="FontSize"        Value="12" />
+                <Setter Property="Padding"         Value="10,4" />
+                <Setter Property="Margin"          Value="0" />
+            </Style>
+
+            <!-- ── Shell flyout item selected state ──────────────────────────── -->
+            <Style TargetType="Grid" Class="FlyoutItemLayout">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="VisualStateManager.VisualStateGroups">
+                    <VisualStateGroupList>
+                        <VisualStateGroup>
+                            <VisualState Name="Selected">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor"
+                                            Value="{StaticResource SurfaceSecondaryColor}" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter>
+            </Style>
+
+            <!-- ── Shared session row DataTemplate ───────────────────────────── -->
+            <DataTemplate x:Key="SessionRowTemplate" x:DataType="models:CopilotSession">
+                <Border Margin="0,0,0,4"
+                        StrokeShape="RoundRectangle 8"
+                        BackgroundColor="{StaticResource SurfaceSecondaryColor}"
+                        Padding="8,10">
+                    <Grid ColumnDefinitions="*,80,68,68,68,72"
+                          VerticalOptions="Center">
+
+                        <!-- Col 0: repo / model -->
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <HorizontalStackLayout Spacing="6">
+                                <Label Text="{Binding Repository}"
+                                       FontSize="13"
+                                       Style="{StaticResource TextPrimaryStyle}" />
+                                <Label Text="{Binding Branch}"
+                                       FontSize="11"
+                                       Style="{StaticResource TextTertiaryStyle}" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="4">
+                                <Border StrokeShape="RoundRectangle 20" Padding="5,2"
+                                        BackgroundColor="{StaticResource SurfaceSecondaryColor}">
+                                    <Label Text="{Binding Model}" FontSize="11"
+                                           Style="{StaticResource TextSecondaryStyle}" />
+                                </Border>
+                                <Label Text="{Binding SourceFolder, Converter={StaticResource PathToNameConverter}}"
+                                       FontSize="11" LineBreakMode="TailTruncation"
+                                       Style="{StaticResource TextTertiaryStyle}" />
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+
+                        <!-- Col 1: time -->
+                        <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="End" VerticalOptions="Center">
+                            <Label Text="{Binding StartTime, StringFormat='{0:dd.MM.yyyy}'}"
+                                   FontSize="11" HorizontalOptions="End"
+                                   Style="{StaticResource TextPrimaryStyle}" />
+                            <Label Text="{Binding StartTime, StringFormat='{0:HH:mm}'}"
+                                   FontSize="11" HorizontalOptions="End"
+                                   Style="{StaticResource TextTertiaryStyle}" />
+                        </VerticalStackLayout>
+
+                        <!-- Col 2: Input -->
+                        <VerticalStackLayout Grid.Column="2" Spacing="1" HorizontalOptions="End">
+                            <Label Text="{Binding Usage.InputTokens, Converter={StaticResource TokensToShortStringConverter}}"
+                                   FontSize="12" HorizontalOptions="End"
+                                   Style="{StaticResource TextPrimaryStyle}" />
+                            <Label Text="{Binding InputCostUsd, StringFormat='${0:F2}'}"
+                                   FontSize="11" HorizontalOptions="End"
+                                   Style="{StaticResource TextTertiaryStyle}" />
+                        </VerticalStackLayout>
+
+                        <!-- Col 3: Output -->
+                        <VerticalStackLayout Grid.Column="3" Spacing="1" HorizontalOptions="End">
+                            <Label Text="{Binding Usage.OutputTokens, Converter={StaticResource TokensToShortStringConverter}}"
+                                   FontSize="12" HorizontalOptions="End"
+                                   Style="{StaticResource TextPrimaryStyle}" />
+                            <Label Text="{Binding OutputCostUsd, StringFormat='${0:F2}'}"
+                                   FontSize="11" HorizontalOptions="End"
+                                   Style="{StaticResource TextTertiaryStyle}" />
+                        </VerticalStackLayout>
+
+                        <!-- Col 4: Cache -->
+                        <VerticalStackLayout Grid.Column="4" Spacing="1" HorizontalOptions="End">
+                            <Label Text="{Binding Usage.CacheReadTokens, Converter={StaticResource TokensToShortStringConverter}}"
+                                   FontSize="12" HorizontalOptions="End"
+                                   Style="{StaticResource TextPrimaryStyle}" />
+                            <Label Text="{Binding CacheReadCostUsd, StringFormat='${0:F2}'}"
+                                   FontSize="11" HorizontalOptions="End"
+                                   Style="{StaticResource TextTertiaryStyle}" />
+                        </VerticalStackLayout>
+
+                        <!-- Col 5: Total -->
+                        <Label Grid.Column="5"
+                               Text="{Binding TotalCostUsd, StringFormat='${0:F4}'}"
+                               FontSize="13"
+                               TextColor="{StaticResource AccentGreenColor}"
+                               HorizontalOptions="End" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
