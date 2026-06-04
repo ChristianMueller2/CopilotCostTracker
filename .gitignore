@@ -7,6 +7,10 @@ AppPackages/
 dist/*.msix
 dist/*.msixbundle
 dist/*.zip
+dist/msix-output/
+
+# Build logs
+build_output.txt
 
 # Keep dist certificates and scripts in source control
 !dist/*.cer
