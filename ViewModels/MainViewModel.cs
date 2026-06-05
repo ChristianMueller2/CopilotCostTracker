@@ -16,6 +16,12 @@ public partial class MainViewModel : ObservableObject
     private readonly IPreferencesService   _prefs;
     private readonly INavigationService    _nav;
     private readonly IUserMessageService   _msg;
+    private readonly ITrayService          _tray;
+    private readonly INotificationService  _notifications;
+
+    // Tracks the last day/month for which a limit notification was sent
+    private DateTime? _lastDailyNotificationDate;
+    private int?      _lastMonthlyNotificationMonth;
 
     [ObservableProperty] public partial ObservableCollection<CopilotSession> Sessions           { get; set; }
     [ObservableProperty] public partial string                               FilterText          { get; set; }
@@ -25,6 +31,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial bool                                 ShowTokens          { get; set; }
     [ObservableProperty] public partial bool                                 EnableEclipseEstimation { get; set; }
     [ObservableProperty] public partial bool                                 ShowTokenInfoHint   { get; set; }
+    [ObservableProperty] public partial bool                                 ShowCredits         { get; set; }
 
     // Computed summary fields (updated in RecalcSummary)
     public int     TotalSessionCount      { get; private set; }
@@ -48,8 +55,9 @@ public partial class MainViewModel : ObservableObject
 
     public bool IsWatcherActive => WatchedFolders.Count > 0;
 
-    public IReadOnlyList<ModelCostItem>   CostByModel     { get; private set; } = [];
-    public IReadOnlyList<ModelCostDetail> CostByModelFull { get; private set; } = [];
+    public IReadOnlyList<ModelCostItem>   CostByModel          { get; private set; } = [];
+    public IReadOnlyList<ModelCostDetail> CostByModelFull      { get; private set; } = [];
+    public IReadOnlyList<DailyChartPoint> CumulativeChartPoints { get; private set; } = [];
 
     public IReadOnlyList<WatchedFolder> WatchedFolders
         => JsonSerializer.Deserialize(
@@ -87,22 +95,33 @@ public partial class MainViewModel : ObservableObject
         IFolderWatcherService watcher,
         IPreferencesService   prefs,
         INavigationService    nav,
-        IUserMessageService   msg)
+        IUserMessageService   msg,
+        ITrayService          tray,
+        INotificationService  notifications)
     {
         _parser         = parser;
         _watcher        = watcher;
         _prefs          = prefs;
         _nav            = nav;
         _msg            = msg;
+        _tray           = tray;
+        _notifications  = notifications;
         Sessions        = new ObservableCollection<CopilotSession>();
         FilterText      = string.Empty;
         ActiveTabFilter = "All";
         LastUpdated     = string.Empty;
+        ShowCredits     = _prefs.Get("ShowCredits", "false") == "true";
         EnableEclipseEstimation = _prefs.Get("EnableEclipseEstimation", "false") == "true";
         ShowTokenInfoHint       = _prefs.Get("ShowTokenInfoHint", "true") == "true";
 
         _watcher.FileChanged += async (_, _) => await RefreshAsync();
     }
+
+    partial void OnShowCreditsChanged(bool value)
+        => _prefs.Set("ShowCredits", value ? "true" : "false");
+
+    [RelayCommand]
+    public void ToggleCredits() => ShowCredits = !ShowCredits;
 
     [RelayCommand]
     public void DismissTokenInfoHint()
@@ -137,12 +156,77 @@ public partial class MainViewModel : ObservableObject
             Sessions = new ObservableCollection<CopilotSession>(results);
             RecalcSummary();
             LastUpdated = $"Updated {DateTime.Now:HH:mm}";
+            UpdateTray();
+            CheckLimitNotifications();
         }
         finally
         {
             IsLoading = false;
         }
         OnPropertyChanged(nameof(FilteredSessions));
+    }
+
+    private void UpdateTray()
+    {
+        var today = Sessions
+            .Where(s => s.StartTime.Date == DateTime.Today)
+            .Sum(s => s.TotalCostUsd);
+
+        var dailyLimitStr = _prefs.Get("DailyLimitUsd", "");
+        decimal.TryParse(dailyLimitStr, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var dailyLimit);
+
+        var total = Sessions.Sum(s => s.TotalCostUsd);
+        _tray.UpdateTooltip($"Today ${today:F2} | Total ${total:F2}");
+        _tray.UpdateTrayIcon(today, dailyLimit);
+    }
+
+    private void CheckLimitNotifications()
+    {
+        if (_prefs.Get("NotificationsEnabled", "true") != "true") return;
+
+        var today = DateTime.Today;
+
+        // Daily limit check
+        var dailyLimitStr = _prefs.Get("DailyLimitUsd", "");
+        if (decimal.TryParse(dailyLimitStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var dailyLimit)
+            && dailyLimit > 0)
+        {
+            var todayCost = Sessions
+                .Where(s => s.StartTime.Date == today)
+                .Sum(s => s.TotalCostUsd);
+
+            if (todayCost >= dailyLimit && _lastDailyNotificationDate != today)
+            {
+                _lastDailyNotificationDate = today;
+                _notifications.Show(
+                    "Daily limit reached",
+                    $"Today's Copilot cost ${todayCost:F2} has reached your daily limit of ${dailyLimit:F2}.",
+                    NotificationSeverity.Warning);
+            }
+        }
+
+        // Monthly limit check
+        var monthlyLimitStr = _prefs.Get("MonthlyLimitUsd", "");
+        if (decimal.TryParse(monthlyLimitStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var monthlyLimit)
+            && monthlyLimit > 0)
+        {
+            var thisMonth = new DateTime(today.Year, today.Month, 1);
+            var monthlyCost = Sessions
+                .Where(s => s.StartTime >= thisMonth)
+                .Sum(s => s.TotalCostUsd);
+
+            if (monthlyCost >= monthlyLimit && _lastMonthlyNotificationMonth != today.Month)
+            {
+                _lastMonthlyNotificationMonth = today.Month;
+                _notifications.Show(
+                    "Monthly limit reached",
+                    $"This month's Copilot cost ${monthlyCost:F2} has reached your monthly limit of ${monthlyLimit:F2}.",
+                    NotificationSeverity.Warning);
+            }
+        }
     }
 
     [RelayCommand]
@@ -268,7 +352,32 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(PctCacheWrite));
         OnPropertyChanged(nameof(CostByModel));
         OnPropertyChanged(nameof(CostByModelFull));
+
+        // Build cumulative daily chart data
+        long    cumTokens = 0;
+        decimal cumCost   = 0m;
+        CumulativeChartPoints = view
+            .GroupBy(s => s.StartTime.Date)
+            .OrderBy(g => g.Key)
+            .Select(g => new
+            {
+                Date   = g.Key,
+                Tokens = g.Sum(s => s.Usage.InputTokens + s.Usage.OutputTokens
+                                  + s.Usage.CacheReadTokens + s.Usage.CacheWriteTokens),
+                Cost   = g.Sum(s => s.TotalCostUsd)
+            })
+            .Select(d =>
+            {
+                cumTokens += d.Tokens;
+                cumCost   += d.Cost;
+                return new DailyChartPoint(d.Date, cumTokens, cumCost);
+            })
+            .ToList();
+        OnPropertyChanged(nameof(CumulativeChartPoints));
+
         OnPropertyChanged(nameof(WatchedFolders));
         OnPropertyChanged(nameof(IsWatcherActive));
     }
 }
+
+public record DailyChartPoint(DateTime Date, long CumulativeTokens, decimal CumulativeCostUsd);

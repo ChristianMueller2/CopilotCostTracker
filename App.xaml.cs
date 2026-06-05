@@ -24,6 +24,17 @@ public partial class App : Application
             var nativeWindow = (MauiWinUIWindow)window.Handler!.PlatformView!;
             var appWindow    = nativeWindow.AppWindow;
 
+            // Set taskbar + titlebar icon for unpackaged (WindowsPackageType=None) apps.
+            // MAUI copies appicon.ico next to the exe during build.
+            var icoPath = System.IO.Path.Combine(
+                System.AppContext.BaseDirectory, "appicon.ico");
+            if (System.IO.File.Exists(icoPath))
+                appWindow.SetIcon(icoPath);
+
+            // Force icon to show in the title bar even when MAUI extends content into it.
+            appWindow.TitleBar.IconShowOptions =
+                Microsoft.UI.Windowing.IconShowOptions.ShowIconAndSystemMenu;
+
             appWindow.Closing += (_, args) =>
             {
                 args.Cancel = true;

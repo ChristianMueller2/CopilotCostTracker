@@ -2,15 +2,18 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:CopilotCostTracker.ViewModels"
+             xmlns:models="clr-namespace:CopilotCostTracker.Models"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="CopilotCostTracker.Views.SessionsPage"
              x:DataType="viewmodels:MainViewModel"
+             x:Name="Root"
              Title="Sessions"
              BackgroundColor="{StaticResource SurfaceColor}">
 
     <Grid RowDefinitions="Auto,Auto,Auto,*">
 
         <!-- Filter bar -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,*"
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto"
               ColumnSpacing="8" Padding="16,12,16,0">
             <Button Grid.Column="0"
                     Text="All"
@@ -32,6 +35,32 @@
                        Placeholder="Filter by repo or model…"
                        Text="{Binding FilterText}"
                        BackgroundColor="{StaticResource SurfaceSecondaryColor}" />
+            <!-- Credits / USD toggle -->
+            <Button Grid.Column="5"
+                    Command="{Binding ToggleCreditsCommand}"
+                    CornerRadius="8"
+                    FontSize="11"
+                    Padding="10,4"
+                    BackgroundColor="{StaticResource SurfaceSecondaryColor}"
+                    BorderWidth="1">
+                <Button.Text>
+                    <MultiBinding StringFormat="{}{0}">
+                        <Binding Path="ShowCredits" />
+                    </MultiBinding>
+                </Button.Text>
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding ShowCredits}" Value="True">
+                        <Setter Property="Text" Value="Credits" />
+                        <Setter Property="TextColor" Value="{StaticResource AccentGreenColor}" />
+                        <Setter Property="BorderColor" Value="{StaticResource AccentGreenColor}" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding ShowCredits}" Value="False">
+                        <Setter Property="Text" Value="USD" />
+                        <Setter Property="TextColor" Value="{StaticResource AccentBlueColor}" />
+                        <Setter Property="BorderColor" Value="{StaticResource AccentBlueColor}" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
         </Grid>
 
         <!-- Header -->
@@ -50,10 +79,113 @@
         <CollectionView Grid.Row="3"
                         x:Name="SessionList"
                         ItemsSource="{Binding FilteredSessions}"
-                        ItemTemplate="{StaticResource SessionRowTemplate}"
                         SelectionMode="Single"
                         SelectionChanged="OnSessionSelected"
                         Margin="16,0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:CopilotSession">
+                    <Border Margin="0,0,0,4"
+                            StrokeShape="RoundRectangle 8"
+                            BackgroundColor="{StaticResource SurfaceSecondaryColor}"
+                            Padding="8,10">
+                        <Grid ColumnDefinitions="*,80,68,68,68,72"
+                              VerticalOptions="Center">
+
+                            <!-- Col 0: repo / model -->
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label Text="{Binding Repository}"
+                                           FontSize="13"
+                                           Style="{StaticResource TextPrimaryStyle}" />
+                                    <Label Text="{Binding Branch}"
+                                           FontSize="11"
+                                           Style="{StaticResource TextTertiaryStyle}" />
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="4">
+                                    <Border StrokeShape="RoundRectangle 20" Padding="5,2"
+                                            BackgroundColor="{StaticResource SurfaceSecondaryColor}">
+                                        <Label Text="{Binding Model}" FontSize="11"
+                                               Style="{StaticResource TextSecondaryStyle}" />
+                                    </Border>
+                                    <Label Text="{Binding SourceFolder, Converter={StaticResource PathToNameConverter}}"
+                                           FontSize="11" LineBreakMode="TailTruncation"
+                                           Style="{StaticResource TextTertiaryStyle}" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+
+                            <!-- Col 1: time -->
+                            <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="End" VerticalOptions="Center">
+                                <Label Text="{Binding StartTime, StringFormat='{0:dd.MM.yyyy}'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       Style="{StaticResource TextPrimaryStyle}" />
+                                <Label Text="{Binding StartTime, StringFormat='{0:HH:mm}'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       Style="{StaticResource TextTertiaryStyle}" />
+                            </VerticalStackLayout>
+
+                            <!-- Col 2: Input -->
+                            <VerticalStackLayout Grid.Column="2" Spacing="1" HorizontalOptions="End">
+                                <Label Text="{Binding Usage.InputTokens, Converter={StaticResource TokensToShortStringConverter}}"
+                                       FontSize="12" HorizontalOptions="End"
+                                       Style="{StaticResource TextPrimaryStyle}" />
+                                <Label Text="{Binding InputCostUsd, StringFormat='${0:F2}'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       Style="{StaticResource TextTertiaryStyle}"
+                                       IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                                <Label Text="{Binding InputCredits, StringFormat='{0:F0} cr'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowCredits}" />
+                            </VerticalStackLayout>
+
+                            <!-- Col 3: Output -->
+                            <VerticalStackLayout Grid.Column="3" Spacing="1" HorizontalOptions="End">
+                                <Label Text="{Binding Usage.OutputTokens, Converter={StaticResource TokensToShortStringConverter}}"
+                                       FontSize="12" HorizontalOptions="End"
+                                       Style="{StaticResource TextPrimaryStyle}" />
+                                <Label Text="{Binding OutputCostUsd, StringFormat='${0:F2}'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       Style="{StaticResource TextTertiaryStyle}"
+                                       IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                                <Label Text="{Binding OutputCredits, StringFormat='{0:F0} cr'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowCredits}" />
+                            </VerticalStackLayout>
+
+                            <!-- Col 4: Cache -->
+                            <VerticalStackLayout Grid.Column="4" Spacing="1" HorizontalOptions="End">
+                                <Label Text="{Binding Usage.CacheReadTokens, Converter={StaticResource TokensToShortStringConverter}}"
+                                       FontSize="12" HorizontalOptions="End"
+                                       Style="{StaticResource TextPrimaryStyle}" />
+                                <Label Text="{Binding CacheReadCostUsd, StringFormat='${0:F2}'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       Style="{StaticResource TextTertiaryStyle}"
+                                       IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                                <Label Text="{Binding CacheReadCredits, StringFormat='{0:F0} cr'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowCredits}" />
+                            </VerticalStackLayout>
+
+                            <!-- Col 5: Total -->
+                            <VerticalStackLayout Grid.Column="5" HorizontalOptions="End" VerticalOptions="Center">
+                                <Label Text="{Binding TotalCostUsd, StringFormat='${0:F4}'}"
+                                       FontSize="13"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       HorizontalOptions="End"
+                                       IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                                <Label Text="{Binding TotalCredits, StringFormat='{0:F0} cr'}"
+                                       FontSize="13"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       HorizontalOptions="End"
+                                       IsVisible="{Binding Source={x:Reference Root}, Path=BindingContext.ShowCredits}" />
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
             <CollectionView.EmptyView>
                 <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center"
                                      Spacing="8" Padding="0,40">
@@ -73,4 +205,5 @@
     </Grid>
 
 </ContentPage>
+
 

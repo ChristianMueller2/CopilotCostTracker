@@ -23,6 +23,25 @@ public class DonutDrawable : IDrawable
     private const float Thickness = 28f;
     private const float Gap       = 2f;  // degrees between slices
 
+    // DrawArc with clockwise=true is unreliable on MAUI/Windows for large arcs.
+    // We draw arcs as PathF polylines using sin/cos instead.
+    private static void DrawRingArc(ICanvas canvas, float cx, float cy, float r,
+                                    float startDeg, float endDeg)
+    {
+        int steps = Math.Max(4, (int)MathF.Ceiling(MathF.Abs(endDeg - startDeg)));
+        var path  = new PathF();
+        for (int s = 0; s <= steps; s++)
+        {
+            float deg = startDeg + (endDeg - startDeg) * s / steps;
+            float rad = deg * MathF.PI / 180f;
+            float x   = cx + r * MathF.Cos(rad);
+            float y   = cy + r * MathF.Sin(rad);
+            if (s == 0) path.MoveTo(x, y);
+            else        path.LineTo(x, y);
+        }
+        canvas.DrawPath(path);
+    }
+
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
         float cx   = dirtyRect.Center.X;
@@ -40,7 +59,7 @@ public class DonutDrawable : IDrawable
         {
             // Gray placeholder ring
             canvas.StrokeColor = Color.FromArgb("#3A3A3C");
-            canvas.DrawArc(cx - arcR, cy - arcR, arcR * 2, arcR * 2, -90f, 269.9f, true, false);
+            DrawRingArc(canvas, cx, cy, arcR, -90f, 269.9f);
             return;
         }
 
@@ -51,7 +70,7 @@ public class DonutDrawable : IDrawable
             float sweep    = (pcts[i] / total) * 360f;
             float endAngle = startAngle + sweep - Gap;
             canvas.StrokeColor = _sliceColors[i];
-            canvas.DrawArc(cx - arcR, cy - arcR, arcR * 2, arcR * 2, startAngle, endAngle, true, false);
+            DrawRingArc(canvas, cx, cy, arcR, startAngle, endAngle);
             startAngle += sweep;
         }
 
