@@ -18,10 +18,13 @@ public partial class MainViewModel : ObservableObject
     private readonly IUserMessageService   _msg;
     private readonly ITrayService          _tray;
     private readonly INotificationService  _notifications;
+    private readonly PricingService        _pricing;
 
     // Tracks the last day/month for which a limit notification was sent
     private DateTime? _lastDailyNotificationDate;
     private int?      _lastMonthlyNotificationMonth;
+    // Models already reported as unknown so we don't repeat the notification
+    private readonly HashSet<string> _reportedUnknownModels = new(StringComparer.OrdinalIgnoreCase);
 
     [ObservableProperty] public partial ObservableCollection<CopilotSession> Sessions           { get; set; }
     [ObservableProperty] public partial string                               FilterText          { get; set; }
@@ -47,6 +50,12 @@ public partial class MainViewModel : ObservableObject
     public decimal GrandTotalCostUsd      { get; private set; }
     public decimal GrandTotalCredits      { get; private set; }
     public decimal CacheSavingsUsd        { get; private set; }
+
+    // Derived credit totals (1 credit = $0.01)
+    public decimal TotalInputCredits      => TotalInputCostUsd      * 100m;
+    public decimal TotalOutputCredits     => TotalOutputCostUsd     * 100m;
+    public decimal TotalCacheReadCredits  => TotalCacheReadCostUsd  * 100m;
+    public decimal TotalCacheWriteCredits => TotalCacheWriteCostUsd * 100m;
 
     public decimal PctInput      { get; private set; }
     public decimal PctOutput     { get; private set; }
@@ -97,7 +106,8 @@ public partial class MainViewModel : ObservableObject
         INavigationService    nav,
         IUserMessageService   msg,
         ITrayService          tray,
-        INotificationService  notifications)
+        INotificationService  notifications,
+        PricingService        pricing)
     {
         _parser         = parser;
         _watcher        = watcher;
@@ -106,12 +116,13 @@ public partial class MainViewModel : ObservableObject
         _msg            = msg;
         _tray           = tray;
         _notifications  = notifications;
+        _pricing        = pricing;
         Sessions        = new ObservableCollection<CopilotSession>();
         FilterText      = string.Empty;
         ActiveTabFilter = "All";
         LastUpdated     = string.Empty;
-        ShowCredits     = _prefs.Get("ShowCredits", "false") == "true";
-        EnableEclipseEstimation = _prefs.Get("EnableEclipseEstimation", "false") == "true";
+        ShowCredits             = _prefs.Get("ShowCredits", "false") == "true";
+        EnableEclipseEstimation = _prefs.Get("EnableEclipseEstimation", "true") == "true";
         ShowTokenInfoHint       = _prefs.Get("ShowTokenInfoHint", "true") == "true";
 
         _watcher.FileChanged += async (_, _) => await RefreshAsync();
@@ -134,10 +145,14 @@ public partial class MainViewModel : ObservableObject
     public async Task ShowEclipseInfoAsync()
     {
         await _msg.ShowAlertAsync(
-            "Eclipse-Sch\u00e4tzung",
-            "Token-Kosten f\u00fcr Eclipse-Sessions werden gesch\u00e4tzt (Zeichen \u00f7 4), " +
-            "da Eclipse keine echten Token-Zahlen speichert. " +
-            "Die Kosten sind N\u00e4herungswerte.",
+            "Cost Estimation",
+            "Some sessions cannot provide exact token counts and are marked \u2248:\n\n" +
+            "\u2022 Eclipse \u2014 no token data; input & output are estimated from message length (chars \u00f7 4).\n\n" +
+            "\u2022 Copilot CLI \u2014 input tokens per turn are not logged by the CLI. " +
+            "Costs are estimated from conversation context size at the last compaction point. " +
+            "Turns after the final compaction are not accounted for, so the actual bill may be higher " +
+            "(typically 20\u201340 % for long sessions).\n\n" +
+            "Estimated figures are approximate and may differ from what the provider charges.",
             "OK");
     }
 
@@ -150,6 +165,7 @@ public partial class MainViewModel : ObservableObject
         IsLoading = true;
         try
         {
+            _pricing.ClearUnknownModels();
             var folders = WatchedFolders;
             _watcher.SetFolders(folders);
             var results = await _parser.ParseAllFoldersAsync(folders);
@@ -158,6 +174,7 @@ public partial class MainViewModel : ObservableObject
             LastUpdated = $"Updated {DateTime.Now:HH:mm}";
             UpdateTray();
             CheckLimitNotifications();
+            CheckUnknownModelNotification();
         }
         finally
         {
@@ -229,6 +246,25 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    private void CheckUnknownModelNotification()
+    {
+        if (_prefs.Get("NotificationsEnabled", "true") != "true") return;
+
+        // Only notify about models not yet reported this app session.
+        var newUnknown = _pricing.UnknownModels
+            .Where(m => _reportedUnknownModels.Add(m))
+            .ToList();
+
+        if (newUnknown.Count == 0) return;
+
+        var list    = string.Join(", ", newUnknown.Select(m => $"'{m}'"));
+        var message = newUnknown.Count == 1
+            ? $"Model {list} has no pricing entry — falling back to default rates. Add it in Settings → Model pricing."
+            : $"Models {list} have no pricing entries — falling back to default rates. Add them in Settings → Model pricing.";
+
+        _notifications.Show("Unknown model pricing", message, NotificationSeverity.Warning);
+    }
+
     [RelayCommand]
     public void SetTabFilter(string filter)
     {
@@ -256,8 +292,8 @@ public partial class MainViewModel : ObservableObject
     {
         var allSessions = FilteredSessions;
 
-        // Eclipse estimated sessions are always shown in the list but excluded from
-        // cost totals unless the user explicitly enabled the Eclipse estimation switch.
+        // Estimated sessions (Eclipse, Copilot CLI, …) are included by default;
+        // the user can exclude them via the estimation toggle.
         var view = EnableEclipseEstimation
             ? allSessions
             : allSessions.Where(s => !s.IsEstimated).ToList();
@@ -343,6 +379,10 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(TotalOutputCostUsd));
         OnPropertyChanged(nameof(TotalCacheReadCostUsd));
         OnPropertyChanged(nameof(TotalCacheWriteCostUsd));
+        OnPropertyChanged(nameof(TotalInputCredits));
+        OnPropertyChanged(nameof(TotalOutputCredits));
+        OnPropertyChanged(nameof(TotalCacheReadCredits));
+        OnPropertyChanged(nameof(TotalCacheWriteCredits));
         OnPropertyChanged(nameof(GrandTotalCostUsd));
         OnPropertyChanged(nameof(GrandTotalCredits));
         OnPropertyChanged(nameof(CacheSavingsUsd));

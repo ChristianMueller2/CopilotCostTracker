@@ -92,6 +92,12 @@ public class PricingService
 
     // Lookup
 
+    // Models seen in logs that had no matching entry — consumers can read and
+    // reset this set to show "unknown model" warnings after a refresh.
+    private readonly HashSet<string> _unknownModels = new(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlySet<string> UnknownModels => _unknownModels;
+    public void ClearUnknownModels() => _unknownModels.Clear();
+
     // Normalise for comparison: lowercase + spaces->hyphens so that e.g.
     // "gpt-5.4-mini" (log) correctly matches "GPT-5.4 mini" (table key).
     private static string Normalize(string s)
@@ -99,10 +105,17 @@ public class PricingService
 
     public ModelPricing GetPricing(string modelName)
     {
+        // Skip synthetic model keys used internally by the parsers.
+        if (string.IsNullOrWhiteSpace(modelName)
+            || modelName.StartsWith("eclipse/", StringComparison.OrdinalIgnoreCase))
+            return _fallback;
+
         var normalizedModel = Normalize(modelName);
         foreach (var p in _models)
             if (normalizedModel.Contains(Normalize(p.ModelKey), StringComparison.Ordinal))
                 return p;
+
+        _unknownModels.Add(modelName);
         return _fallback;
     }
 
