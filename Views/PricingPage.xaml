@@ -57,13 +57,13 @@
             <CollectionView.Header>
                 <Grid ColumnDefinitions="90,*,68,68,75,68,44"
                       Padding="4,10,4,6" ColumnSpacing="4">
-                    <Label Grid.Column="0" Text="Provider"      Style="{StaticResource ColHeaderStyle}" />
-                    <Label Grid.Column="1" Text="Model"         Style="{StaticResource ColHeaderStyle}" />
-                    <Label Grid.Column="2" Text="Input/1M"      Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
-                    <Label Grid.Column="3" Text="Cached/1M"     Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
-                    <Label Grid.Column="4" Text="CacheWrite/1M" Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
-                    <Label Grid.Column="5" Text="Output/1M"     Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
-                    <Label Grid.Column="6" Text=""              Style="{StaticResource ColHeaderStyle}" />
+                    <Label Grid.Column="0" Text="Provider"            Style="{StaticResource ColHeaderStyle}" />
+                    <Label Grid.Column="1" Text="Model"               Style="{StaticResource ColHeaderStyle}" />
+                    <Label Grid.Column="2" Text="Input / 1M $"        Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
+                    <Label Grid.Column="3" Text="Cached / 1M $"       Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
+                    <Label Grid.Column="4" Text="CacheWrite / 1M $"   Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
+                    <Label Grid.Column="5" Text="Output / 1M $"       Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
+                    <Label Grid.Column="6" Text=""                    Style="{StaticResource ColHeaderStyle}" />
                 </Grid>
             </CollectionView.Header>
 
@@ -83,29 +83,38 @@
                                Style="{StaticResource TableEntryStyle}"
                                Placeholder="e.g. Claude Sonnet 4.6" />
 
-                        <Entry Grid.Column="2"
-                               Text="{Binding InputPer1M}"
-                               Style="{StaticResource TableEntryStyle}"
-                               Keyboard="Numeric"
-                               HorizontalTextAlignment="End" />
+                        <!-- Price columns: $ prefix label + Entry -->
+                        <Grid Grid.Column="2" ColumnDefinitions="14,*">
+                            <Label Grid.Column="0" Text="$" FontSize="12" VerticalOptions="Center"
+                                   TextColor="{StaticResource TextTertiaryColor}" />
+                            <Entry Grid.Column="1" Text="{Binding InputPer1M}"
+                                   Style="{StaticResource TableEntryStyle}"
+                                   Keyboard="Numeric" HorizontalTextAlignment="End" />
+                        </Grid>
 
-                        <Entry Grid.Column="3"
-                               Text="{Binding CachedInputPer1M}"
-                               Style="{StaticResource TableEntryStyle}"
-                               Keyboard="Numeric"
-                               HorizontalTextAlignment="End" />
+                        <Grid Grid.Column="3" ColumnDefinitions="14,*">
+                            <Label Grid.Column="0" Text="$" FontSize="12" VerticalOptions="Center"
+                                   TextColor="{StaticResource TextTertiaryColor}" />
+                            <Entry Grid.Column="1" Text="{Binding CachedInputPer1M}"
+                                   Style="{StaticResource TableEntryStyle}"
+                                   Keyboard="Numeric" HorizontalTextAlignment="End" />
+                        </Grid>
 
-                        <Entry Grid.Column="4"
-                               Text="{Binding CacheWritePer1M}"
-                               Style="{StaticResource TableEntryStyle}"
-                               Keyboard="Numeric"
-                               HorizontalTextAlignment="End" />
+                        <Grid Grid.Column="4" ColumnDefinitions="14,*">
+                            <Label Grid.Column="0" Text="$" FontSize="12" VerticalOptions="Center"
+                                   TextColor="{StaticResource TextTertiaryColor}" />
+                            <Entry Grid.Column="1" Text="{Binding CacheWritePer1M}"
+                                   Style="{StaticResource TableEntryStyle}"
+                                   Keyboard="Numeric" HorizontalTextAlignment="End" />
+                        </Grid>
 
-                        <Entry Grid.Column="5"
-                               Text="{Binding OutputPer1M}"
-                               Style="{StaticResource TableEntryStyle}"
-                               Keyboard="Numeric"
-                               HorizontalTextAlignment="End" />
+                        <Grid Grid.Column="5" ColumnDefinitions="14,*">
+                            <Label Grid.Column="0" Text="$" FontSize="12" VerticalOptions="Center"
+                                   TextColor="{StaticResource TextTertiaryColor}" />
+                            <Entry Grid.Column="1" Text="{Binding OutputPer1M}"
+                                   Style="{StaticResource TableEntryStyle}"
+                                   Keyboard="Numeric" HorizontalTextAlignment="End" />
+                        </Grid>
 
                         <Button Grid.Column="6"
                                 Text="✕"
