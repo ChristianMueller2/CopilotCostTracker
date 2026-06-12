@@ -83,6 +83,21 @@
                 </Setter>
             </Style>
 
+            <!-- ── Pricing table ──────────────────────────────────────────── -->
+            <Style x:Key="ColHeaderStyle" TargetType="Label">
+                <Setter Property="TextColor"      Value="{StaticResource TextTertiaryColor}" />
+                <Setter Property="FontSize"       Value="11" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
+
+            <Style x:Key="TableEntryStyle" TargetType="Entry">
+                <Setter Property="BackgroundColor"   Value="{StaticResource SurfaceSecondaryColor}" />
+                <Setter Property="TextColor"         Value="{StaticResource TextPrimaryColor}" />
+                <Setter Property="PlaceholderColor"  Value="{StaticResource TextTertiaryColor}" />
+                <Setter Property="FontSize"          Value="12" />
+                <Setter Property="HeightRequest"     Value="32" />
+            </Style>
+
             <!-- ── Shared session row DataTemplate (kept for backward compat) ──────────────── -->
             <!-- NOTE: The full DataTemplate with Credits/USD toggle lives in SessionsPage.xaml -->
 

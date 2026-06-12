@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CopilotCostTracker.ViewModels"
+             x:Class="CopilotCostTracker.Views.PricingPage"
+             x:DataType="vm:PricingViewModel"
+             BackgroundColor="{StaticResource SurfaceColor}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- ── Header ─────────────────────────────────────────────────────── -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto"
+              Padding="16,14,16,10" ColumnSpacing="8">
+
+            <Button Grid.Column="0"
+                    Text="← Back"
+                    Command="{Binding GoBackCommand}"
+                    Style="{StaticResource GhostButtonStyle}"
+                    FontSize="13" HeightRequest="32" Padding="10,0" />
+
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="1">
+                <Label Text="Model pricing"
+                       FontSize="15" FontAttributes="Bold"
+                       Style="{StaticResource TextPrimaryStyle}" />
+                <Label Text="USD per 1 million tokens · source: GitHub Copilot billing docs"
+                       FontSize="10"
+                       Style="{StaticResource TextTertiaryStyle}" />
+            </VerticalStackLayout>
+
+            <Button Grid.Column="2"
+                    Text="Reset to defaults"
+                    Command="{Binding ResetToDefaultsCommand}"
+                    BackgroundColor="{StaticResource SurfaceSecondaryColor}"
+                    TextColor="{StaticResource TextSecondaryColor}"
+                    BorderColor="{StaticResource BorderColor}"
+                    BorderWidth="1" CornerRadius="8"
+                    FontSize="12" Padding="12,4" />
+
+            <Button Grid.Column="3"
+                    Text="Save"
+                    Command="{Binding SaveCommand}"
+                    BackgroundColor="{StaticResource AccentBlueColor}"
+                    TextColor="White"
+                    CornerRadius="8"
+                    FontSize="12" Padding="16,4" />
+        </Grid>
+
+        <BoxView Grid.Row="1" HeightRequest="0.5"
+                 Color="{StaticResource BorderColor}" Margin="16,0" />
+
+        <!-- ── Table ──────────────────────────────────────────────────────── -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Rows}"
+                        Margin="16,0">
+
+            <!-- Table header -->
+            <CollectionView.Header>
+                <Grid ColumnDefinitions="90,*,68,68,75,68,44"
+                      Padding="4,10,4,6" ColumnSpacing="4">
+                    <Label Grid.Column="0" Text="Provider"      Style="{StaticResource ColHeaderStyle}" />
+                    <Label Grid.Column="1" Text="Model"         Style="{StaticResource ColHeaderStyle}" />
+                    <Label Grid.Column="2" Text="Input/1M"      Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
+                    <Label Grid.Column="3" Text="Cached/1M"     Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
+                    <Label Grid.Column="4" Text="CacheWrite/1M" Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
+                    <Label Grid.Column="5" Text="Output/1M"     Style="{StaticResource ColHeaderStyle}" HorizontalOptions="End" />
+                    <Label Grid.Column="6" Text=""              Style="{StaticResource ColHeaderStyle}" />
+                </Grid>
+            </CollectionView.Header>
+
+            <!-- Editable row -->
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:PricingRowViewModel">
+                    <Grid ColumnDefinitions="90,*,68,68,75,68,44"
+                          Padding="4,3,4,3" ColumnSpacing="4">
+
+                        <Entry Grid.Column="0"
+                               Text="{Binding Provider}"
+                               Style="{StaticResource TableEntryStyle}"
+                               Placeholder="Vendor" />
+
+                        <Entry Grid.Column="1"
+                               Text="{Binding ModelKey}"
+                               Style="{StaticResource TableEntryStyle}"
+                               Placeholder="e.g. Claude Sonnet 4.6" />
+
+                        <Entry Grid.Column="2"
+                               Text="{Binding InputPer1M}"
+                               Style="{StaticResource TableEntryStyle}"
+                               Keyboard="Numeric"
+                               HorizontalTextAlignment="End" />
+
+                        <Entry Grid.Column="3"
+                               Text="{Binding CachedInputPer1M}"
+                               Style="{StaticResource TableEntryStyle}"
+                               Keyboard="Numeric"
+                               HorizontalTextAlignment="End" />
+
+                        <Entry Grid.Column="4"
+                               Text="{Binding CacheWritePer1M}"
+                               Style="{StaticResource TableEntryStyle}"
+                               Keyboard="Numeric"
+                               HorizontalTextAlignment="End" />
+
+                        <Entry Grid.Column="5"
+                               Text="{Binding OutputPer1M}"
+                               Style="{StaticResource TableEntryStyle}"
+                               Keyboard="Numeric"
+                               HorizontalTextAlignment="End" />
+
+                        <Button Grid.Column="6"
+                                Text="✕"
+                                FontSize="11"
+                                BackgroundColor="Transparent"
+                                TextColor="{StaticResource TextTertiaryColor}"
+                                Padding="0"
+                                HeightRequest="30"
+                                WidthRequest="36"
+                                VerticalOptions="Center"
+                                CommandParameter="{Binding .}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PricingViewModel}}, Path=DeleteRowCommand}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <!-- Footer: add button -->
+            <CollectionView.Footer>
+                <VerticalStackLayout Padding="4,8,4,16" Spacing="0">
+                    <Button Text="＋ Add model"
+                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:PricingViewModel}}, Path=AddRowCommand}"
+                            Style="{StaticResource GhostButtonStyle}"
+                            HorizontalOptions="Start"
+                            FontSize="13" Padding="8,6" />
+                </VerticalStackLayout>
+            </CollectionView.Footer>
+        </CollectionView>
+
+        <!-- ── Status bar ─────────────────────────────────────────────────── -->
+        <Border Grid.Row="3"
+                IsVisible="{Binding HasStatus}"
+                BackgroundColor="{StaticResource SurfaceSecondaryColor}"
+                Padding="16,10">
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="13"
+                   TextColor="{StaticResource AccentGreenColor}"
+                   HorizontalOptions="Center" />
+        </Border>
+
+    </Grid>
+</ContentPage>

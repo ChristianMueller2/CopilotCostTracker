@@ -1,62 +1,116 @@
 // Services/PricingService.cs
+using System.Text.Json;
 using CopilotCostTracker.Models;
 
 namespace CopilotCostTracker.Services;
 
 public class PricingService
 {
-    private static readonly List<ModelPricing> _table =
+    private static readonly string PricingFilePath =
+        Path.Combine(FileSystem.AppDataDirectory, "model_pricing.json");
+
+    /// <summary>
+    /// Default pricing from https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing
+    /// All values are USD per 1 million tokens.
+    /// Within a family, more specific keys (mini/nano/codex/higher version) come first
+    /// so the Contains-based lookup matches the most precise entry first.
+    /// </summary>
+    public static IReadOnlyList<ModelPricing> DefaultPricing { get; } =
     [
-        new() { ModelKey = "claude-opus-4.8",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
-        new() { ModelKey = "claude-opus-4.7",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
-        new() { ModelKey = "claude-opus-4.6",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
-        new() { ModelKey = "claude-opus-4.5",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
-        new() { ModelKey = "claude-sonnet-4.6", InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
-        new() { ModelKey = "claude-sonnet-4.5", InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
-        new() { ModelKey = "claude-sonnet-4",   InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
-        new() { ModelKey = "claude-haiku-4.5",  InputPer1M = 1.00m,  CachedInputPer1M = 0.10m,  CacheWritePer1M = 1.25m,  OutputPer1M = 5.00m  },
-        new() { ModelKey = "claude-haiku-4",    InputPer1M = 1.00m,  CachedInputPer1M = 0.10m,  CacheWritePer1M = 1.25m,  OutputPer1M = 5.00m  },
-        new() { ModelKey = "gpt-5.5",           InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 0.00m,  OutputPer1M = 30.00m },
-        new() { ModelKey = "gpt-5.4 mini",      InputPer1M = 0.75m,  CachedInputPer1M = 0.075m, CacheWritePer1M = 0.00m,  OutputPer1M = 4.50m  },
-        new() { ModelKey = "gpt-5.4 nano",      InputPer1M = 0.20m,  CachedInputPer1M = 0.02m,  CacheWritePer1M = 0.00m,  OutputPer1M = 1.25m  },
-        new() { ModelKey = "gpt-5.4",           InputPer1M = 2.50m,  CachedInputPer1M = 0.25m,  CacheWritePer1M = 0.00m,  OutputPer1M = 15.00m },
-        new() { ModelKey = "gpt-5.3-codex",     InputPer1M = 1.75m,  CachedInputPer1M = 0.175m, CacheWritePer1M = 0.00m,  OutputPer1M = 14.00m },
-        new() { ModelKey = "gpt-5.2-codex",     InputPer1M = 1.75m,  CachedInputPer1M = 0.175m, CacheWritePer1M = 0.00m,  OutputPer1M = 14.00m },
-        new() { ModelKey = "gpt-5.2",           InputPer1M = 1.75m,  CachedInputPer1M = 0.175m, CacheWritePer1M = 0.00m,  OutputPer1M = 14.00m },
-        new() { ModelKey = "gpt-5 mini",        InputPer1M = 0.25m,  CachedInputPer1M = 0.025m, CacheWritePer1M = 0.00m,  OutputPer1M = 2.00m  },
-        new() { ModelKey = "gpt-4.1",           InputPer1M = 2.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 0.00m,  OutputPer1M = 8.00m  },
-        new() { ModelKey = "gemini-3.5-flash",  InputPer1M = 1.50m,  CachedInputPer1M = 0.15m,  CacheWritePer1M = 0.00m,  OutputPer1M = 9.00m  },
-        new() { ModelKey = "gemini-3.1-pro",    InputPer1M = 2.00m,  CachedInputPer1M = 0.20m,  CacheWritePer1M = 0.00m,  OutputPer1M = 12.00m },
-        new() { ModelKey = "gemini-3-flash",    InputPer1M = 0.50m,  CachedInputPer1M = 0.05m,  CacheWritePer1M = 0.00m,  OutputPer1M = 3.00m  },
-        new() { ModelKey = "gemini-2.5-pro",    InputPer1M = 1.25m,  CachedInputPer1M = 0.125m, CacheWritePer1M = 0.00m,  OutputPer1M = 10.00m },
-        new() { ModelKey = "mai-code-1-flash",  InputPer1M = 0.75m,  CachedInputPer1M = 0.075m, CacheWritePer1M = 0.00m,  OutputPer1M = 4.50m  },
-        new() { ModelKey = "raptor",            InputPer1M = 0.25m,  CachedInputPer1M = 0.025m, CacheWritePer1M = 0.00m,  OutputPer1M = 2.00m  },
+        // Anthropic
+        new() { Provider = "Anthropic", ModelKey = "Claude Fable 5",    InputPer1M = 10.00m, CachedInputPer1M = 1.00m,  CacheWritePer1M = 12.50m, OutputPer1M = 50.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Opus 4.8",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Opus 4.7",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Opus 4.6",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Opus 4.5",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Sonnet 4.6", InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Sonnet 4.5", InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Sonnet 4",   InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Haiku 4.5",  InputPer1M = 1.00m,  CachedInputPer1M = 0.10m,  CacheWritePer1M = 1.25m,  OutputPer1M = 5.00m  },
+        // OpenAI – mini/nano/codex before base to avoid substring mis-matches
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5.5",           InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 0m,     OutputPer1M = 30.00m },
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5.4 mini",      InputPer1M = 0.75m,  CachedInputPer1M = 0.075m, CacheWritePer1M = 0m,     OutputPer1M = 4.50m  },
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5.4 nano",      InputPer1M = 0.20m,  CachedInputPer1M = 0.02m,  CacheWritePer1M = 0m,     OutputPer1M = 1.25m  },
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5.4",           InputPer1M = 2.50m,  CachedInputPer1M = 0.25m,  CacheWritePer1M = 0m,     OutputPer1M = 15.00m },
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5.3-Codex",     InputPer1M = 1.75m,  CachedInputPer1M = 0.175m, CacheWritePer1M = 0m,     OutputPer1M = 14.00m },
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5 mini",        InputPer1M = 0.25m,  CachedInputPer1M = 0.025m, CacheWritePer1M = 0m,     OutputPer1M = 2.00m  },
+        // Google
+        new() { Provider = "Google",    ModelKey = "Gemini 3.5 Flash",  InputPer1M = 1.50m,  CachedInputPer1M = 0.15m,  CacheWritePer1M = 0m,     OutputPer1M = 9.00m  },
+        new() { Provider = "Google",    ModelKey = "Gemini 3.1 Pro",    InputPer1M = 2.00m,  CachedInputPer1M = 0.20m,  CacheWritePer1M = 0m,     OutputPer1M = 12.00m },
+        new() { Provider = "Google",    ModelKey = "Gemini 3 Flash",    InputPer1M = 0.50m,  CachedInputPer1M = 0.05m,  CacheWritePer1M = 0m,     OutputPer1M = 3.00m  },
+        new() { Provider = "Google",    ModelKey = "Gemini 2.5 Pro",    InputPer1M = 1.25m,  CachedInputPer1M = 0.125m, CacheWritePer1M = 0m,     OutputPer1M = 10.00m },
+        // GitHub fine-tuned
+        new() { Provider = "GitHub",    ModelKey = "Raptor mini",       InputPer1M = 0.25m,  CachedInputPer1M = 0.025m, CacheWritePer1M = 0m,     OutputPer1M = 2.00m  },
+        // Microsoft
+        new() { Provider = "Microsoft", ModelKey = "MAI-Code-1-Flash",  InputPer1M = 0.75m,  CachedInputPer1M = 0.075m, CacheWritePer1M = 0m,     OutputPer1M = 4.50m  },
     ];
 
-    private static readonly ModelPricing _default = new()
+    private static readonly ModelPricing _fallback = new()
     {
-        ModelKey = "default",
+        Provider = "", ModelKey = "default",
         InputPer1M = 3.00m, CachedInputPer1M = 0.30m, CacheWritePer1M = 3.75m, OutputPer1M = 15.00m
     };
 
-    // Normalise model name for comparison: lowercase + spaces→hyphens.
-    // This ensures e.g. "gpt-5.4-mini" (log) matches "gpt-5.4 mini" (table).
+    private List<ModelPricing> _models;
+
+    public PricingService() => _models = LoadFromFileOrDefaults();
+
+    // Persistence
+
+    private static List<ModelPricing> LoadFromFileOrDefaults()
+    {
+        try
+        {
+            if (File.Exists(PricingFilePath))
+            {
+                var json   = File.ReadAllText(PricingFilePath);
+                var loaded = JsonSerializer.Deserialize(json, AppJsonContext.Default.ListModelPricing);
+                if (loaded is { Count: > 0 })
+                    return loaded;
+            }
+        }
+        catch { /* fall through to defaults */ }
+
+        return [.. DefaultPricing];
+    }
+
+    public IReadOnlyList<ModelPricing> GetAll() => _models.AsReadOnly();
+
+    public void UpdateAll(List<ModelPricing> models) => _models = models;
+
+    public void ResetToDefaults() => _models = [.. DefaultPricing];
+
+    public async Task SaveAsync()
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(_models, AppJsonContext.Default.ListModelPricing);
+            await File.WriteAllTextAsync(PricingFilePath, json);
+        }
+        catch { /* ignore write errors */ }
+    }
+
+    // Lookup
+
+    // Normalise for comparison: lowercase + spaces->hyphens so that e.g.
+    // "gpt-5.4-mini" (log) correctly matches "GPT-5.4 mini" (table key).
     private static string Normalize(string s)
         => s.ToLowerInvariant().Replace(' ', '-');
 
     public ModelPricing GetPricing(string modelName)
     {
         var normalizedModel = Normalize(modelName);
-        foreach (var p in _table)
+        foreach (var p in _models)
             if (normalizedModel.Contains(Normalize(p.ModelKey), StringComparison.Ordinal))
                 return p;
-        return _default;
+        return _fallback;
     }
+
+    // Cost calculation
 
     public void CalculateCosts(CopilotSession session)
     {
         var p = GetPricing(session.Model);
-        // Prices in the table are USD per million tokens — compute USD cost directly.
         session.InputCostUsd      = (session.Usage.InputTokens      / 1_000_000m) * p.InputPer1M;
         session.OutputCostUsd     = (session.Usage.OutputTokens     / 1_000_000m) * p.OutputPer1M;
         session.CacheReadCostUsd  = (session.Usage.CacheReadTokens  / 1_000_000m) * p.CachedInputPer1M;

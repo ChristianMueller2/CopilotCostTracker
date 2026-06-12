@@ -63,6 +63,37 @@
                 </Grid>
             </Border>
 
+            <!-- ── Model pricing ─────────────────────────────────────────── -->
+            <Label Text="Model pricing"
+                   FontSize="13" FontAttributes="Bold"
+                   Style="{StaticResource TextTertiaryStyle}"
+                   Margin="0,0,0,10" />
+
+            <Border StrokeShape="RoundRectangle 10"
+                    BackgroundColor="{StaticResource SurfaceSecondaryColor}"
+                    Padding="16,14" Margin="0,0,0,24">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+                    <Label Grid.Row="0" Grid.Column="0"
+                           Text="Edit model prices"
+                           FontSize="14"
+                           Style="{StaticResource TextPrimaryStyle}" />
+                    <Button Grid.Row="0" Grid.Column="1"
+                            Text="Open →"
+                            Command="{Binding GoToPricingCommand}"
+                            BackgroundColor="{StaticResource SurfaceColor}"
+                            TextColor="{StaticResource AccentBlueColor}"
+                            BorderColor="{StaticResource AccentBlueColor}"
+                            BorderWidth="1"
+                            CornerRadius="8"
+                            FontSize="12"
+                            Padding="12,4" />
+                    <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                           Text="Per-million-token prices for all models. Add custom models or adjust rates without an app update."
+                           FontSize="12"
+                           Style="{StaticResource TextTertiaryStyle}" />
+                </Grid>
+            </Border>
+
             <!-- ── Cost limits ───────────────────────────────────────────── -->
             <Label Text="Cost limits (USD)"
                    FontSize="13" FontAttributes="Bold"
