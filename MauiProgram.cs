@@ -34,6 +34,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<FolderListViewModel>();
         builder.Services.AddSingleton<SettingsViewModel>();
         builder.Services.AddTransient<SessionDetailViewModel>();
+        builder.Services.AddTransient<PricingViewModel>();
 
         // Shell and pages
         builder.Services.AddSingleton<AppShell>();
@@ -44,6 +45,7 @@ public static class MauiProgram
         builder.Services.AddTransient<FolderListPage>();
         builder.Services.AddTransient<SessionDetailPage>();
         builder.Services.AddSingleton<SettingsPage>();
+        builder.Services.AddTransient<PricingPage>();
 
         return builder.Build();
     }

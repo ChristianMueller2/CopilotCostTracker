@@ -14,5 +14,6 @@ public partial class AppShell : Shell
         // Register detail routes (not in flyout)
         Routing.RegisterRoute("folders",       typeof(FolderListPage));
         Routing.RegisterRoute("sessiondetail", typeof(SessionDetailPage));
+        Routing.RegisterRoute("pricing",       typeof(PricingPage));
     }
 }

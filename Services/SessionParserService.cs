@@ -11,6 +11,28 @@ public class SessionParserService : ISessionParserService
 
     public SessionParserService(PricingService pricing) => _pricing = pricing;
 
+    /// <summary>
+    /// Reads all lines from a JSONL file using FileShare.ReadWrite so the
+    /// Copilot CLI (or any other writer) can still append to the file while
+    /// we are reading it — prevents os error 32 (EBUSY) when both processes
+    /// access the same session file simultaneously.
+    /// </summary>
+    private static async Task<string[]> ReadLinesSharedAsync(string filePath)
+    {
+        await using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete,
+            bufferSize: 4096,
+            useAsync: true);
+        using var reader = new StreamReader(stream);
+        var lines = new List<string>();
+        while (await reader.ReadLineAsync() is { } line)
+            lines.Add(line);
+        return [.. lines];
+    }
+
     public async Task<IReadOnlyList<CopilotSession>> ParseFileAsync(string filePath, string sourceFolder)
     {
         var sessions = new List<CopilotSession>();
@@ -19,7 +41,7 @@ public class SessionParserService : ISessionParserService
 
         try
         {
-            var lines = await File.ReadAllLinesAsync(filePath);
+            var lines = await ReadLinesSharedAsync(filePath);
 
             // Detect format from the first non-empty line
             var firstNonEmpty = lines.FirstOrDefault(l => !string.IsNullOrWhiteSpace(l));
@@ -34,6 +56,10 @@ public class SessionParserService : ISessionParserService
 
                 if (probeKind != null && probe?["v"]?["sessionId"] != null)
                     return await ParseVsCodeChatSessionAsync(lines, filePath, sourceFolder);
+
+                if (probeType == "session.start"
+                    && probe?["data"]?["producer"]?.GetValue<string>() == "copilot-agent")
+                    return await ParseCopilotAgentSessionAsync(lines, filePath, sourceFolder);
             }
 
             foreach (var line in lines)
@@ -151,13 +177,11 @@ public class SessionParserService : ISessionParserService
                             if (data?["status"]?.GetValue<string>() == "success") turnCount++;
                             break;
 
-                        // Estimate input tokens from user messages (chars ÷ 4)
+                        // Estimate input tokens from user messages (chars ÷ 4).
+                        // Only user.message is counted to avoid double-counting:
+                        // user.message_rendered fires for the same turn and would inflate the total.
                         case "user.message":
                             estInputTokens += EstimateTokens(data?["content"]?.GetValue<string>());
-                            break;
-
-                        case "user.message_rendered":
-                            estInputTokens += EstimateTokens(data?["renderedMessage"]?.GetValue<string>());
                             break;
 
                         // Estimate output tokens from assistant messages
@@ -206,6 +230,186 @@ public class SessionParserService : ISessionParserService
 
     private static long EstimateTokens(string? text)
         => string.IsNullOrEmpty(text) ? 0 : (long)Math.Round(text.Length / 4.0);
+
+    private Task<IReadOnlyList<CopilotSession>> ParseCopilotAgentSessionAsync(
+        string[] lines, string filePath, string sourceFolder)
+    {
+        var sessions = new List<CopilotSession>();
+        try
+        {
+            string sessionId    = string.Empty;
+            DateTime startTime  = DateTime.MinValue;
+            DateTime lastTime   = DateTime.MinValue;
+            string repo         = string.Empty;
+            string branch       = string.Empty;
+            string defaultModel = string.Empty;
+            int    requestCount = 0;
+
+            // outputTokens per model key (exact, from assistant.message)
+            var outputTokensPerModel = new Dictionary<string, long>();
+
+            // Exact tokens from compaction_complete events, keyed by model
+            var compInput      = new Dictionary<string, long>();
+            var compOutput     = new Dictionary<string, long>();
+            var compCacheRead  = new Dictionary<string, long>();
+            var compCacheWrite = new Dictionary<string, long>();
+
+            // context sizes from the last compaction_start event for input estimation
+            long estSysTokens  = 0;
+            long estConvTokens = 0;
+            bool hasCompStart  = false;
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                try
+                {
+                    var node = JsonNode.Parse(line);
+                    if (node == null) continue;
+
+                    var type  = node["type"]?.GetValue<string>();
+                    var tsRaw = node["timestamp"]?.GetValue<string>();
+                    if (DateTime.TryParse(tsRaw, null,
+                            System.Globalization.DateTimeStyles.RoundtripKind, out var ts))
+                    {
+                        var tsLocal = ts.ToLocalTime();
+                        if (startTime == DateTime.MinValue) startTime = tsLocal;
+                        if (ts > lastTime) lastTime = ts;
+                    }
+
+                    var data = node["data"];
+                    switch (type)
+                    {
+                        case "session.start":
+                            sessionId = data?["sessionId"]?.GetValue<string>() ?? string.Empty;
+                            var startStr = data?["startTime"]?.GetValue<string>();
+                            if (DateTime.TryParse(startStr, null,
+                                    System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+                                startTime = dt.ToLocalTime();
+                            repo   = data?["context"]?["gitRoot"]?.GetValue<string>()
+                                  ?? data?["context"]?["cwd"]?.GetValue<string>()
+                                  ?? string.Empty;
+                            branch = data?["context"]?["branch"]?.GetValue<string>() ?? string.Empty;
+                            break;
+
+                        case "session.model_change":
+                            if (string.IsNullOrEmpty(defaultModel))
+                                defaultModel = data?["newModel"]?.GetValue<string>() ?? string.Empty;
+                            break;
+
+                        case "assistant.message":
+                            var model    = data?["model"]?.GetValue<string>() ?? defaultModel;
+                            var tokens   = data?["outputTokens"]?.GetValue<long>() ?? 0;
+                            var isSub    = data?["parentToolCallId"] != null;
+                            var modelKey = isSub ? model + " (sub)" : model;
+                            if (!string.IsNullOrEmpty(modelKey))
+                                outputTokensPerModel[modelKey] = outputTokensPerModel.GetValueOrDefault(modelKey) + tokens;
+                            break;
+
+                        case "assistant.turn_end":
+                            requestCount++;
+                            break;
+
+                        case "session.compaction_start":
+                            // Keep the last (largest) compaction context for estimation.
+                            // sys = system prompt + tool definitions (constant per-turn overhead).
+                            estSysTokens  = (data?["systemTokens"]?.GetValue<long>() ?? 0)
+                                          + (data?["toolDefinitionsTokens"]?.GetValue<long>() ?? 0);
+                            estConvTokens = data?["conversationTokens"]?.GetValue<long>() ?? 0;
+                            hasCompStart  = true;
+                            break;
+
+                        case "session.compaction_complete":
+                            var cu         = data?["compactionTokensUsed"];
+                            var compModel  = cu?["model"]?.GetValue<string>() ?? defaultModel;
+                            if (string.IsNullOrEmpty(compModel)) break;
+
+                            compInput[compModel]     = compInput.GetValueOrDefault(compModel)
+                                                     + (cu?["inputTokens"]?.GetValue<long>()     ?? 0);
+                            compOutput[compModel]    = compOutput.GetValueOrDefault(compModel)
+                                                     + (cu?["outputTokens"]?.GetValue<long>()    ?? 0);
+                            compCacheRead[compModel] = compCacheRead.GetValueOrDefault(compModel)
+                                                     + (cu?["cacheReadTokens"]?.GetValue<long>() ?? 0);
+                            // cacheWriteTokens field is often 0; use tokenDetails when available.
+                            var cw = cu?["cacheWriteTokens"]?.GetValue<long>() ?? 0;
+                            if (cw == 0 && cu?["copilotUsage"]?["tokenDetails"] is JsonArray td)
+                                foreach (var item in td)
+                                    if (item?["tokenType"]?.GetValue<string>() == "cache_write")
+                                        cw += item["tokenCount"]?.GetValue<long>() ?? 0;
+                            compCacheWrite[compModel] = compCacheWrite.GetValueOrDefault(compModel) + cw;
+                            break;
+                    }
+                }
+                catch { /* skip malformed line */ }
+            }
+
+            if (string.IsNullOrEmpty(sessionId)) return Task.FromResult<IReadOnlyList<CopilotSession>>(sessions);
+
+            var durationMs = lastTime > DateTime.MinValue && startTime > DateTime.MinValue
+                ? (long)(lastTime.ToUniversalTime() - startTime.ToUniversalTime()).TotalMilliseconds
+                : 0;
+
+            // Estimate per-turn input tokens for the primary (non-sub) model.
+            // Model: sys overhead is written to cache on turn 1 and read on subsequent turns;
+            // conversation grows linearly, so average cached context ≈ conv/2.
+            long estInput      = 0;
+            long estCacheRead  = 0;
+            long estCacheWrite = 0;
+            bool isEstimated   = false;
+
+            if (hasCompStart && requestCount > 0)
+            {
+                isEstimated    = true;
+                var N          = (long)requestCount;
+                estInput       = estSysTokens + estConvTokens;              // new tokens per session
+                estCacheRead   = (N - 1) * estSysTokens                    // sys read N-1 times
+                               + estConvTokens * (N - 1) / 2;              // growing conv cached
+                estCacheWrite  = estSysTokens + estConvTokens;             // written once each
+            }
+
+            // Build the set of model keys across all data sources
+            var allModelKeys = new HashSet<string>(outputTokensPerModel.Keys);
+            foreach (var k in compInput.Keys) allModelKeys.Add(k);
+            if (allModelKeys.Count == 0 && !string.IsNullOrEmpty(defaultModel))
+                allModelKeys.Add(defaultModel);
+
+            // Determine the primary model for attaching the estimated per-turn input
+            var primaryModel = defaultModel;
+            if (string.IsNullOrEmpty(primaryModel))
+                primaryModel = allModelKeys.FirstOrDefault(k => !k.Contains("(sub)")) ?? string.Empty;
+
+            foreach (var mk in allModelKeys)
+            {
+                var isPrimary = mk == primaryModel;
+                var session   = new CopilotSession
+                {
+                    SessionId    = sessionId,
+                    Model        = mk,
+                    Repository   = repo,
+                    Branch       = branch,
+                    StartTime    = startTime,
+                    DurationMs   = durationMs,
+                    RequestCount = requestCount,
+                    SourceFile   = filePath,
+                    SourceFolder = sourceFolder,
+                    IsEstimated  = isEstimated && isPrimary,
+                    Usage = new TokenUsage
+                    {
+                        InputTokens      = (isPrimary ? estInput     : 0) + compInput.GetValueOrDefault(mk),
+                        OutputTokens     = outputTokensPerModel.GetValueOrDefault(mk)
+                                         + compOutput.GetValueOrDefault(mk),
+                        CacheReadTokens  = (isPrimary ? estCacheRead  : 0) + compCacheRead.GetValueOrDefault(mk),
+                        CacheWriteTokens = (isPrimary ? estCacheWrite : 0) + compCacheWrite.GetValueOrDefault(mk),
+                    }
+                };
+                _pricing.CalculateCosts(session);
+                sessions.Add(session);
+            }
+        }
+        catch { /* unreadable */ }
+
+        return Task.FromResult<IReadOnlyList<CopilotSession>>(sessions);
+    }
 
     private Task<IReadOnlyList<CopilotSession>> ParseVsCodeChatSessionAsync(
         string[] lines, string filePath, string sourceFolder)
@@ -289,6 +493,9 @@ public class SessionParserService : ISessionParserService
                     RequestCount = requestCount,
                     SourceFile   = filePath,
                     SourceFolder = sourceFolder,
+                    // VS Code chat JSONL persists completionTokens only — promptTokens are not
+                    // stored in this format, so InputCostUsd will always be 0.
+                    IsEstimated  = true,
                     Usage = new TokenUsage
                     {
                         OutputTokens = totalOutputTokens,
@@ -335,7 +542,7 @@ public class SessionParserService : ISessionParserService
 
         try
         {
-            var lines = await File.ReadAllLinesAsync(filePath);
+            var lines = await ReadLinesSharedAsync(filePath);
 
             // Detect VS Code chat session format
             var firstNonEmpty = lines.FirstOrDefault(l => !string.IsNullOrWhiteSpace(l));

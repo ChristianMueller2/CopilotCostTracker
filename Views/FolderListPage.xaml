@@ -11,64 +11,43 @@
         <ToolbarItem Text="←" Command="{Binding GoBackCommand}" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="16" RowSpacing="12">
+    <Grid RowDefinitions="*,Auto" Padding="16" RowSpacing="12">
 
-        <!-- Add button -->
-        <Button Grid.Row="0"
-                Text="Add folder"
-                Command="{Binding AddFolderCommand}"
-                Style="{StaticResource GhostButtonStyle}"
-                BorderColor="{StaticResource BorderColor}"
-                BorderWidth="1"
-                CornerRadius="8"
-                HorizontalOptions="Start" />
-
-        <!-- Folder list -->
-        <ScrollView Grid.Row="1" IsVisible="{Binding HasFolders}">
+        <!-- Folder list / empty state -->
+        <ScrollView Grid.Row="0" IsVisible="{Binding HasFolders}">
             <VerticalStackLayout x:Name="FoldersLayout" Spacing="6" />
         </ScrollView>
 
-        <!-- Empty state (shown when no folders) -->
-        <VerticalStackLayout Grid.Row="1" HorizontalOptions="Center" VerticalOptions="Center"
+        <VerticalStackLayout Grid.Row="0" HorizontalOptions="Center" VerticalOptions="Center"
                              Spacing="8" IsVisible="{Binding HasNoFolders}">
             <Label Text="No folders added yet" FontSize="14"
                    HorizontalOptions="Center"
                    Style="{StaticResource TextSecondaryStyle}" />
-            <Label Text="Click 'Add folder' to start tracking sessions"
+            <Label Text="Click '＋ Add folder' below to start tracking sessions"
                    FontSize="12" HorizontalOptions="Center"
                    Style="{StaticResource TextTertiaryStyle}" />
         </VerticalStackLayout>
 
-        <!-- Status -->
-        <Label Grid.Row="2"
-               Text="{Binding LastUpdated}"
-               FontSize="12"
-               Style="{StaticResource TextTertiaryStyle}"
-               Margin="0,8,0,0" />
+        <!-- Bottom bar: status + prominent add button -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" RowSpacing="0" ColumnSpacing="12">
 
-        <!-- Eclipse estimation setting -->
-        <Border Grid.Row="3"
-                BackgroundColor="{StaticResource SurfaceColor}"
-                StrokeThickness="1"
-                Stroke="{StaticResource BorderColor}"
-                StrokeShape="RoundRectangle 8"
-                Padding="12,10"
-                Margin="0,4,0,0">
-            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                <Label Grid.Column="0" Grid.Row="0"
-                       Text="Eclipse-Sch&#228;tzung einbeziehen"
-                       FontSize="14"
-                       Style="{StaticResource TextPrimaryStyle}"
-                       VerticalOptions="Center" />
-                <Switch Grid.Column="1" Grid.Row="0" Grid.RowSpan="2"
-                        IsToggled="{Binding EnableEclipseEstimation, Mode=TwoWay}"
-                        VerticalOptions="Center" />
-                <Label Grid.Column="0" Grid.Row="1"
-                       Text="Token-Kosten f&#252;r Eclipse-Sessions werden gesch&#228;tzt (Zeichen &#247; 4)"
-                       FontSize="11"
-                       Style="{StaticResource TextTertiaryStyle}" />
-            </Grid>
-        </Border>
+            <Label Grid.Column="0"
+                   Text="{Binding LastUpdated}"
+                   FontSize="12"
+                   VerticalOptions="Center"
+                   Style="{StaticResource TextTertiaryStyle}" />
+
+            <Button Grid.Column="1"
+                    Text="＋  Add folder"
+                    Command="{Binding AddFolderCommand}"
+                    BackgroundColor="{StaticResource AccentBlueColor}"
+                    TextColor="White"
+                    CornerRadius="10"
+                    FontSize="14"
+                    FontAttributes="Bold"
+                    Padding="20,10"
+                    HeightRequest="44" />
+        </Grid>
 
     </Grid>
 

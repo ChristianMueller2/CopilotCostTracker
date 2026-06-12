@@ -44,6 +44,24 @@
                             BackgroundColor="Transparent"
                             TextColor="{StaticResource TextSecondaryColor}"
                             Command="{Binding RefreshCommand}" />
+                    <!-- Credits / USD toggle -->
+                    <Button Command="{Binding ToggleCreditsCommand}"
+                            CornerRadius="8" FontSize="11" Padding="10,4"
+                            BackgroundColor="{StaticResource SurfaceSecondaryColor}"
+                            BorderWidth="1">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding ShowCredits}" Value="True">
+                                <Setter Property="Text" Value="Credits" />
+                                <Setter Property="TextColor" Value="{StaticResource AccentGreenColor}" />
+                                <Setter Property="BorderColor" Value="{StaticResource AccentGreenColor}" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Button" Binding="{Binding ShowCredits}" Value="False">
+                                <Setter Property="Text" Value="USD" />
+                                <Setter Property="TextColor" Value="{StaticResource AccentBlueColor}" />
+                                <Setter Property="BorderColor" Value="{StaticResource AccentBlueColor}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                 </HorizontalStackLayout>
             </Grid>
         </Border>
@@ -55,19 +73,27 @@
                 <!-- ① Metric cards – row 1: totals -->
                 <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
 
-                    <!-- Total cost -->
+                    <!-- Total cost / AI credits (switchable) -->
                     <Border Grid.Column="0" StrokeShape="RoundRectangle 10" Padding="14,12"
                             BackgroundColor="{StaticResource SurfaceSecondaryColor}">
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Total cost" FontSize="12"
-                                   Style="{StaticResource TextSecondaryStyle}" />
+                                   Style="{StaticResource TextSecondaryStyle}"
+                                   IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
                             <Label Text="{Binding GrandTotalCostUsd, StringFormat='${0:F4}'}"
-                                   FontSize="22" TextColor="{StaticResource AccentGreenColor}" />
+                                   FontSize="22" TextColor="{StaticResource AccentGreenColor}"
+                                   IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                            <Label Text="AI credits" FontSize="12"
+                                   Style="{StaticResource TextSecondaryStyle}"
+                                   IsVisible="{Binding ShowCredits}" />
+                            <Label Text="{Binding GrandTotalCredits, StringFormat='{0:F2} cr'}"
+                                   FontSize="22" TextColor="{StaticResource AccentGreenColor}"
+                                   IsVisible="{Binding ShowCredits}" />
                             <Label FontSize="11" Style="{StaticResource TextTertiaryStyle}">
                                 <Label.FormattedText>
                                     <FormattedString>
                                         <Span Text="{Binding TotalSessionCount}" />
-                                        <Span Text=" sessions · " />
+                                        <Span Text=" sessions &#183; " />
                                         <Span Text="{Binding TotalFolderCount}" />
                                         <Span Text=" folders" />
                                     </FormattedString>
@@ -76,16 +102,28 @@
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- AI credits -->
+                    <!-- AI credits / USD (switchable) -->
                     <Border Grid.Column="1" StrokeShape="RoundRectangle 10" Padding="14,12"
                             BackgroundColor="{StaticResource SurfaceSecondaryColor}">
                         <VerticalStackLayout Spacing="2">
                             <Label Text="AI credits" FontSize="12"
-                                   Style="{StaticResource TextSecondaryStyle}" />
+                                   Style="{StaticResource TextSecondaryStyle}"
+                                   IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
                             <Label Text="{Binding GrandTotalCredits, StringFormat='{0:F2} cr'}"
-                                   FontSize="22" Style="{StaticResource TextPrimaryStyle}" />
-                            <Label Text="{Binding GrandTotalCostUsd, StringFormat='≈ ${0:F2} USD'}"
-                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}" />
+                                   FontSize="22" Style="{StaticResource TextPrimaryStyle}"
+                                   IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                            <Label Text="{Binding GrandTotalCostUsd, StringFormat='&#x2248; ${0:F2} USD'}"
+                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}"
+                                   IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                            <Label Text="Total cost" FontSize="12"
+                                   Style="{StaticResource TextSecondaryStyle}"
+                                   IsVisible="{Binding ShowCredits}" />
+                            <Label Text="{Binding GrandTotalCostUsd, StringFormat='${0:F4}'}"
+                                   FontSize="22" TextColor="{StaticResource AccentGreenColor}"
+                                   IsVisible="{Binding ShowCredits}" />
+                            <Label Text="{Binding GrandTotalCredits, StringFormat='&#x2248; {0:F2} cr'}"
+                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}"
+                                   IsVisible="{Binding ShowCredits}" />
                         </VerticalStackLayout>
                     </Border>
 
@@ -132,7 +170,11 @@
                             <Label Text="{Binding TotalInputTokens, Converter={StaticResource TokensToShortStringConverter}}"
                                    FontSize="20" Style="{StaticResource TextPrimaryStyle}" />
                             <Label Text="{Binding TotalInputCostUsd, StringFormat='${0:F4}'}"
-                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}" />
+                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}"
+                                   IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                            <Label Text="{Binding TotalInputCredits, StringFormat='{0:F0} cr'}"
+                                   FontSize="11" TextColor="{StaticResource AccentGreenColor}"
+                                   IsVisible="{Binding ShowCredits}" />
                         </VerticalStackLayout>
                     </Border>
 
@@ -149,7 +191,11 @@
                             <Label Text="{Binding TotalOutputTokens, Converter={StaticResource TokensToShortStringConverter}}"
                                    FontSize="20" Style="{StaticResource TextPrimaryStyle}" />
                             <Label Text="{Binding TotalOutputCostUsd, StringFormat='${0:F4}'}"
-                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}" />
+                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}"
+                                   IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                            <Label Text="{Binding TotalOutputCredits, StringFormat='{0:F0} cr'}"
+                                   FontSize="11" TextColor="{StaticResource AccentGreenColor}"
+                                   IsVisible="{Binding ShowCredits}" />
                         </VerticalStackLayout>
                     </Border>
 
@@ -166,7 +212,11 @@
                             <Label Text="{Binding TotalCacheReadTokens, Converter={StaticResource TokensToShortStringConverter}}"
                                    FontSize="20" Style="{StaticResource TextPrimaryStyle}" />
                             <Label Text="{Binding TotalCacheReadCostUsd, StringFormat='${0:F4}'}"
-                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}" />
+                                   FontSize="11" Style="{StaticResource TextTertiaryStyle}"
+                                   IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                            <Label Text="{Binding TotalCacheReadCredits, StringFormat='{0:F0} cr'}"
+                                   FontSize="11" TextColor="{StaticResource AccentGreenColor}"
+                                   IsVisible="{Binding ShowCredits}" />
                         </VerticalStackLayout>
                     </Border>
                 </Grid>
@@ -195,7 +245,13 @@
                                 <Label Grid.Row="0" Grid.Column="2"
                                        Text="{Binding TotalInputCostUsd, StringFormat='${0:F4}'}"
                                        FontSize="11" HorizontalOptions="End"
-                                       Style="{StaticResource TextTertiaryStyle}" />
+                                       Style="{StaticResource TextTertiaryStyle}"
+                                       IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                                <Label Grid.Row="0" Grid.Column="2"
+                                       Text="{Binding TotalInputCredits, StringFormat='{0:F0} cr'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       IsVisible="{Binding ShowCredits}" />
 
                                 <BoxView Grid.Row="1" Grid.Column="0"
                                          WidthRequest="8" HeightRequest="8" CornerRadius="4"
@@ -205,7 +261,13 @@
                                 <Label Grid.Row="1" Grid.Column="2"
                                        Text="{Binding TotalOutputCostUsd, StringFormat='${0:F4}'}"
                                        FontSize="11" HorizontalOptions="End"
-                                       Style="{StaticResource TextTertiaryStyle}" />
+                                       Style="{StaticResource TextTertiaryStyle}"
+                                       IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                                <Label Grid.Row="1" Grid.Column="2"
+                                       Text="{Binding TotalOutputCredits, StringFormat='{0:F0} cr'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       IsVisible="{Binding ShowCredits}" />
 
                                 <BoxView Grid.Row="2" Grid.Column="0"
                                          WidthRequest="8" HeightRequest="8" CornerRadius="4"
@@ -215,7 +277,13 @@
                                 <Label Grid.Row="2" Grid.Column="2"
                                        Text="{Binding TotalCacheReadCostUsd, StringFormat='${0:F4}'}"
                                        FontSize="11" HorizontalOptions="End"
-                                       Style="{StaticResource TextTertiaryStyle}" />
+                                       Style="{StaticResource TextTertiaryStyle}"
+                                       IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                                <Label Grid.Row="2" Grid.Column="2"
+                                       Text="{Binding TotalCacheReadCredits, StringFormat='{0:F0} cr'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       IsVisible="{Binding ShowCredits}" />
 
                                 <BoxView Grid.Row="3" Grid.Column="0"
                                          WidthRequest="8" HeightRequest="8" CornerRadius="4"
@@ -225,7 +293,13 @@
                                 <Label Grid.Row="3" Grid.Column="2"
                                        Text="{Binding TotalCacheWriteCostUsd, StringFormat='${0:F4}'}"
                                        FontSize="11" HorizontalOptions="End"
-                                       Style="{StaticResource TextTertiaryStyle}" />
+                                       Style="{StaticResource TextTertiaryStyle}"
+                                       IsVisible="{Binding ShowCredits, Converter={toolkit:InvertedBoolConverter}}" />
+                                <Label Grid.Row="3" Grid.Column="2"
+                                       Text="{Binding TotalCacheWriteCredits, StringFormat='{0:F0} cr'}"
+                                       FontSize="11" HorizontalOptions="End"
+                                       TextColor="{StaticResource AccentGreenColor}"
+                                       IsVisible="{Binding ShowCredits}" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>
@@ -278,15 +352,15 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- ③b Eclipse estimation setting -->
+                <!-- ③b Estimation setting -->
                 <Border StrokeShape="RoundRectangle 8" Padding="12,8"
                         BackgroundColor="{StaticResource SurfaceSecondaryColor}">
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
-                            <Label Text="Eclipse-Sch&#228;tzung einbeziehen"
+                            <Label Text="Include estimated sessions"
                                    FontSize="13"
                                    Style="{StaticResource TextPrimaryStyle}" />
-                            <Label Text="Token-Kosten f&#252;r Eclipse-Sessions werden gesch&#228;tzt (Zeichen &#247; 4)"
+                            <Label Text="Eclipse and Copilot CLI sessions without exact token data are marked &#x2248; and included in cost totals"
                                    FontSize="11"
                                    Style="{StaticResource TextTertiaryStyle}" />
                         </VerticalStackLayout>
@@ -314,14 +388,21 @@
                                 <Label.FormattedText>
                                     <FormattedString>
                                         <Span Text="&#x2022; " />
-                                        <Span Text="Copilot sessions" FontAttributes="Bold" />
+                                        <Span Text="Copilot (VS Extension)" FontAttributes="Bold" />
                                         <Span Text=" — logs all token types: input, output, cache read &amp; write." />
                                         <Span Text="&#10;&#x2022; " />
+                                        <Span Text="Copilot CLI" FontAttributes="Bold" />
+                                        <Span Text=" — output tokens are exact; input tokens per turn are not logged and are estimated " />
+                                        <Span Text="&#x2248;" FontAttributes="Bold" />
+                                        <Span Text=" from context size. Turns after the last compaction are unaccounted for (typically +20&#x2013;40%)." />
+                                        <Span Text="&#10;&#x2022; " />
                                         <Span Text="VS Code" FontAttributes="Bold" />
-                                        <Span Text=" — only output (completion) tokens are stored per request; input and cache tokens are not available." />
+                                        <Span Text=" — only output (completion) tokens are stored; input and cache tokens are not available." />
                                         <Span Text="&#10;&#x2022; " />
                                         <Span Text="Eclipse" FontAttributes="Bold" />
-                                        <Span Text=" — no token counts at all; input &amp; output are estimated from message length (chars &#247; 4)." />
+                                        <Span Text=" — no token data at all; input &amp; output are estimated " />
+                                        <Span Text="&#x2248;" FontAttributes="Bold" />
+                                        <Span Text=" from message length (chars &#247; 4)." />
                                     </FormattedString>
                                 </Label.FormattedText>
                             </Label>

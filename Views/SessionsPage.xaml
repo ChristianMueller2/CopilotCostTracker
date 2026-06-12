@@ -113,13 +113,16 @@
                                 </HorizontalStackLayout>
                             </VerticalStackLayout>
 
-                            <!-- Col 1: time -->
+                            <!-- Col 1: time + turns -->
                             <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="End" VerticalOptions="Center">
                                 <Label Text="{Binding StartTime, StringFormat='{0:dd.MM.yyyy}'}"
                                        FontSize="11" HorizontalOptions="End"
                                        Style="{StaticResource TextPrimaryStyle}" />
                                 <Label Text="{Binding StartTime, StringFormat='{0:HH:mm}'}"
                                        FontSize="11" HorizontalOptions="End"
+                                       Style="{StaticResource TextTertiaryStyle}" />
+                                <Label Text="{Binding RequestCount, StringFormat='{0} turns'}"
+                                       FontSize="10" HorizontalOptions="End"
                                        Style="{StaticResource TextTertiaryStyle}" />
                             </VerticalStackLayout>
 

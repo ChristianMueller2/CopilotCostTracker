@@ -1,4 +1,3 @@
-// ViewModels/SettingsViewModel.cs
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CopilotCostTracker.Services;
@@ -9,6 +8,7 @@ public partial class SettingsViewModel : ObservableObject
 {
     private readonly IPreferencesService  _prefs;
     private readonly INotificationService _notifications;
+    private readonly INavigationService   _nav;
 
     [ObservableProperty] public partial bool   NotificationsEnabled { get; set; }
     [ObservableProperty] public partial string DailyLimitText       { get; set; }
@@ -17,15 +17,19 @@ public partial class SettingsViewModel : ObservableObject
 
     public bool HasSaveConfirmation => !string.IsNullOrEmpty(SaveConfirmation);
 
-    public SettingsViewModel(IPreferencesService prefs, INotificationService notifications)
+    public SettingsViewModel(IPreferencesService prefs, INotificationService notifications, INavigationService nav)
     {
         _prefs               = prefs;
         _notifications       = notifications;
+        _nav                 = nav;
         NotificationsEnabled = _prefs.Get("NotificationsEnabled", "true") == "true";
         DailyLimitText       = _prefs.Get("DailyLimitUsd", "");
         MonthlyLimitText     = _prefs.Get("MonthlyLimitUsd", "");
         SaveConfirmation     = string.Empty;
     }
+
+    [RelayCommand]
+    Task GoToPricingAsync() => _nav.GoToAsync("pricing");
 
     [RelayCommand]
     public async Task TestNotificationAsync()
