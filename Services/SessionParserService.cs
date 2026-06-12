@@ -151,13 +151,11 @@ public class SessionParserService : ISessionParserService
                             if (data?["status"]?.GetValue<string>() == "success") turnCount++;
                             break;
 
-                        // Estimate input tokens from user messages (chars ÷ 4)
+                        // Estimate input tokens from user messages (chars ÷ 4).
+                        // Only user.message is counted to avoid double-counting:
+                        // user.message_rendered fires for the same turn and would inflate the total.
                         case "user.message":
                             estInputTokens += EstimateTokens(data?["content"]?.GetValue<string>());
-                            break;
-
-                        case "user.message_rendered":
-                            estInputTokens += EstimateTokens(data?["renderedMessage"]?.GetValue<string>());
                             break;
 
                         // Estimate output tokens from assistant messages
@@ -289,6 +287,9 @@ public class SessionParserService : ISessionParserService
                     RequestCount = requestCount,
                     SourceFile   = filePath,
                     SourceFolder = sourceFolder,
+                    // VS Code chat JSONL persists completionTokens only — promptTokens are not
+                    // stored in this format, so InputCostUsd will always be 0.
+                    IsEstimated  = true,
                     Usage = new TokenUsage
                     {
                         OutputTokens = totalOutputTokens,

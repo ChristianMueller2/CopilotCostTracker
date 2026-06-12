@@ -39,10 +39,16 @@ public class PricingService
         InputPer1M = 3.00m, CachedInputPer1M = 0.30m, CacheWritePer1M = 3.75m, OutputPer1M = 15.00m
     };
 
+    // Normalise model name for comparison: lowercase + spaces→hyphens.
+    // This ensures e.g. "gpt-5.4-mini" (log) matches "gpt-5.4 mini" (table).
+    private static string Normalize(string s)
+        => s.ToLowerInvariant().Replace(' ', '-');
+
     public ModelPricing GetPricing(string modelName)
     {
+        var normalizedModel = Normalize(modelName);
         foreach (var p in _table)
-            if (modelName.Contains(p.ModelKey, StringComparison.OrdinalIgnoreCase))
+            if (normalizedModel.Contains(Normalize(p.ModelKey), StringComparison.Ordinal))
                 return p;
         return _default;
     }
