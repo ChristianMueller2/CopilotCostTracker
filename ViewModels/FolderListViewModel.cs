@@ -18,14 +18,17 @@ public partial class FolderListViewModel : ObservableObject
     private readonly INavigationService    _nav;
     private readonly MainViewModel         _main;
 
-    [ObservableProperty] public partial ObservableCollection<WatchedFolder> WatchedFolders { get; set; }
-
-    // Delegate eclipse toggle to MainViewModel so state is shared
-    public bool EnableEclipseEstimation
+    /// <summary>Default paths to auto-add on first launch (if they exist).</summary>
+    private static IEnumerable<string> DefaultPaths()
     {
-        get => _main.EnableEclipseEstimation;
-        set => _main.EnableEclipseEstimation = value;
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        yield return Path.Combine(profile,  ".copilot", "session-state");
+        yield return Path.Combine(appData,  "Code", "User", "workspaceStorage");
+        yield return Path.Combine(profile,  ".copilot", "eclipse");
     }
+
+    [ObservableProperty] public partial ObservableCollection<WatchedFolder> WatchedFolders { get; set; }
 
     public bool HasNoFolders => WatchedFolders.Count == 0;
     public bool HasFolders   => WatchedFolders.Count > 0;
@@ -53,8 +56,6 @@ public partial class FolderListViewModel : ObservableObject
         {
             if (e.PropertyName == nameof(MainViewModel.LastUpdated))
                 OnPropertyChanged(nameof(LastUpdated));
-            if (e.PropertyName == nameof(MainViewModel.EnableEclipseEstimation))
-                OnPropertyChanged(nameof(EnableEclipseEstimation));
         };
     }
 
@@ -69,8 +70,26 @@ public partial class FolderListViewModel : ObservableObject
             OnPropertyChanged(nameof(HasNoFolders));
             OnPropertyChanged(nameof(HasFolders));
         };
+
+        // On first launch (no folders persisted) auto-add the known default paths.
+        if (WatchedFolders.Count == 0)
+            AddDefaultFolders();
+
         OnPropertyChanged(nameof(HasNoFolders));
         OnPropertyChanged(nameof(HasFolders));
+    }
+
+    private void AddDefaultFolders()
+    {
+        bool added = false;
+        foreach (var path in DefaultPaths())
+        {
+            if (!Directory.Exists(path)) continue;
+            if (WatchedFolders.Any(f => f.Path.Equals(path, StringComparison.OrdinalIgnoreCase))) continue;
+            WatchedFolders.Add(new WatchedFolder { Path = path, IncludeSubdirectories = true });
+            added = true;
+        }
+        if (added) Persist();
     }
 
     private void Persist()
@@ -103,8 +122,6 @@ public partial class FolderListViewModel : ObservableObject
     [RelayCommand]
     private async Task ToggleSubdirsAsync(WatchedFolder folder)
     {
-        // The Switch two-way binding already updated folder.IncludeSubdirectories;
-        // just persist and refresh.
         Persist();
         await _main.RefreshCommand.ExecuteAsync(null);
     }
