@@ -8,6 +8,7 @@
     <SingleProject>true</SingleProject>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <MauiXamlInflator>SourceGen</MauiXamlInflator>
     <ApplicationTitle>CopilotCostTracker</ApplicationTitle>
     <ApplicationId>com.companyname.copilotcosttracker</ApplicationId>
@@ -15,13 +16,10 @@
     <ApplicationVersion>1</ApplicationVersion>
     <WindowsPackageType>None</WindowsPackageType>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-    <!-- Reference WinForms for NotifyIcon without triggering WPF/WinFX targets -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
 
     <!-- AOT & size optimization — only active during publish -->
-    <!--
     <TrimmerRootDescriptor>Platforms\Windows\TrimmerRoots.xml</TrimmerRootDescriptor>
-    <InvariantGlobalization>true</InvariantGlobalization>
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
     <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
     <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
@@ -30,17 +28,13 @@
     <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
     <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <UseNativeHttpHandler>true</UseNativeHttpHandler>
-    -->
   </PropertyGroup>
 
-  <!-- PublishAot only when explicitly publishing (requires RID) to avoid trimming
-       conflict with UseWindowsForms during regular builds -->
-  <!--
+  <!-- PublishAot only when explicitly publishing (requires RID) -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)' != '' and '$(Configuration)' == 'Release'">
     <PublishAot>true</PublishAot>
     <PublishReadyToRun>false</PublishReadyToRun>
   </PropertyGroup>
-  -->
 
   <ItemGroup>
     <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
@@ -48,11 +42,6 @@
     <MauiImage Include="Resources\Images\*" />
     <MauiFont Include="Resources\Fonts\*" />
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- WinForms for NotifyIcon (system tray) -->
-    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
   </ItemGroup>
 
   <ItemGroup>
