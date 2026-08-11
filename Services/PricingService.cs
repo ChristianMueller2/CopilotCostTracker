@@ -19,15 +19,20 @@ public class PricingService
     [
         // Anthropic
         new() { Provider = "Anthropic", ModelKey = "Claude Fable 5",    InputPer1M = 10.00m, CachedInputPer1M = 1.00m,  CacheWritePer1M = 12.50m, OutputPer1M = 50.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Opus 5",     InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
         new() { Provider = "Anthropic", ModelKey = "Claude Opus 4.8",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
         new() { Provider = "Anthropic", ModelKey = "Claude Opus 4.7",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
         new() { Provider = "Anthropic", ModelKey = "Claude Opus 4.6",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
         new() { Provider = "Anthropic", ModelKey = "Claude Opus 4.5",   InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 25.00m },
+        new() { Provider = "Anthropic", ModelKey = "Claude Sonnet 5",   InputPer1M = 2.00m,  CachedInputPer1M = 0.20m,  CacheWritePer1M = 2.50m,  OutputPer1M = 10.00m },
         new() { Provider = "Anthropic", ModelKey = "Claude Sonnet 4.6", InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
         new() { Provider = "Anthropic", ModelKey = "Claude Sonnet 4.5", InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
         new() { Provider = "Anthropic", ModelKey = "Claude Sonnet 4",   InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 3.75m,  OutputPer1M = 15.00m },
         new() { Provider = "Anthropic", ModelKey = "Claude Haiku 4.5",  InputPer1M = 1.00m,  CachedInputPer1M = 0.10m,  CacheWritePer1M = 1.25m,  OutputPer1M = 5.00m  },
         // OpenAI – mini/nano/codex before base to avoid substring mis-matches
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5.6 Sol",       InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 6.25m,  OutputPer1M = 30.00m },
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5.6 Terra",     InputPer1M = 2.00m,  CachedInputPer1M = 0.20m,  CacheWritePer1M = 2.50m,  OutputPer1M = 12.00m },
+        new() { Provider = "OpenAI",    ModelKey = "GPT-5.6 Luna",      InputPer1M = 0.20m,  CachedInputPer1M = 0.02m,  CacheWritePer1M = 0.25m,  OutputPer1M = 1.20m  },
         new() { Provider = "OpenAI",    ModelKey = "GPT-5.5",           InputPer1M = 5.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 0m,     OutputPer1M = 30.00m },
         new() { Provider = "OpenAI",    ModelKey = "GPT-5.4 mini",      InputPer1M = 0.75m,  CachedInputPer1M = 0.075m, CacheWritePer1M = 0m,     OutputPer1M = 4.50m  },
         new() { Provider = "OpenAI",    ModelKey = "GPT-5.4 nano",      InputPer1M = 0.20m,  CachedInputPer1M = 0.02m,  CacheWritePer1M = 0m,     OutputPer1M = 1.25m  },
@@ -35,6 +40,7 @@ public class PricingService
         new() { Provider = "OpenAI",    ModelKey = "GPT-5.3-Codex",     InputPer1M = 1.75m,  CachedInputPer1M = 0.175m, CacheWritePer1M = 0m,     OutputPer1M = 14.00m },
         new() { Provider = "OpenAI",    ModelKey = "GPT-5 mini",        InputPer1M = 0.25m,  CachedInputPer1M = 0.025m, CacheWritePer1M = 0m,     OutputPer1M = 2.00m  },
         // Google
+        new() { Provider = "Google",    ModelKey = "Gemini 3.6 Flash",  InputPer1M = 1.50m,  CachedInputPer1M = 0.15m,  CacheWritePer1M = 0m,     OutputPer1M = 7.50m  },
         new() { Provider = "Google",    ModelKey = "Gemini 3.5 Flash",  InputPer1M = 1.50m,  CachedInputPer1M = 0.15m,  CacheWritePer1M = 0m,     OutputPer1M = 9.00m  },
         new() { Provider = "Google",    ModelKey = "Gemini 3.1 Pro",    InputPer1M = 2.00m,  CachedInputPer1M = 0.20m,  CacheWritePer1M = 0m,     OutputPer1M = 12.00m },
         new() { Provider = "Google",    ModelKey = "Gemini 3 Flash",    InputPer1M = 0.50m,  CachedInputPer1M = 0.05m,  CacheWritePer1M = 0m,     OutputPer1M = 3.00m  },
@@ -43,6 +49,11 @@ public class PricingService
         new() { Provider = "GitHub",    ModelKey = "Raptor mini",       InputPer1M = 0.25m,  CachedInputPer1M = 0.025m, CacheWritePer1M = 0m,     OutputPer1M = 2.00m  },
         // Microsoft
         new() { Provider = "Microsoft", ModelKey = "MAI-Code-1-Flash",  InputPer1M = 0.75m,  CachedInputPer1M = 0.075m, CacheWritePer1M = 0m,     OutputPer1M = 4.50m  },
+        // xAI
+        new() { Provider = "xAI",       ModelKey = "Grok 4.5",          InputPer1M = 2.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 0m,     OutputPer1M = 6.00m  },
+        // Moonshot AI
+        new() { Provider = "Moonshot AI", ModelKey = "Kimi K2.7 Code",  InputPer1M = 0.95m,  CachedInputPer1M = 0.19m,  CacheWritePer1M = 0m,     OutputPer1M = 4.00m  },
+        new() { Provider = "Moonshot AI", ModelKey = "Kimi K3",         InputPer1M = 3.00m,  CachedInputPer1M = 0.30m,  CacheWritePer1M = 0m,     OutputPer1M = 15.00m },
     ];
 
     private static readonly ModelPricing _fallback = new()

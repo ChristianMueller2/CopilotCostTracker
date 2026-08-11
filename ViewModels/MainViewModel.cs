@@ -29,6 +29,8 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial ObservableCollection<CopilotSession> Sessions           { get; set; }
     [ObservableProperty] public partial string                               FilterText          { get; set; }
     [ObservableProperty] public partial string                               ActiveTabFilter     { get; set; }
+    [ObservableProperty] public partial DateTime                             CustomFromDate      { get; set; }
+    [ObservableProperty] public partial DateTime                             CustomToDate        { get; set; }
     [ObservableProperty] public partial bool                                 IsLoading           { get; set; }
     [ObservableProperty] public partial string                               LastUpdated         { get; set; }
     [ObservableProperty] public partial bool                                 ShowTokens          { get; set; }
@@ -86,13 +88,23 @@ public partial class MainViewModel : ObservableObject
                 q = q.Where(s => s.StartTime >= DateTime.Today.AddDays(-7));
             else if (ActiveTabFilter == "Month")
                 q = q.Where(s => s.StartTime >= new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1));
+            else if (ActiveTabFilter == "Custom")
+            {
+                var from = CustomFromDate.Date;
+                var to   = CustomToDate.Date;
+                if (from > to) (from, to) = (to, from);
+                q = q.Where(s => s.StartTime.Date >= from && s.StartTime.Date <= to);
+            }
 
             if (!string.IsNullOrWhiteSpace(FilterText))
             {
                 var t = FilterText.Trim();
                 q = q.Where(s =>
                     s.Repository.Contains(t, StringComparison.OrdinalIgnoreCase) ||
-                    s.Model.Contains(t, StringComparison.OrdinalIgnoreCase));
+                    s.Model.Contains(t, StringComparison.OrdinalIgnoreCase) ||
+                    s.Branch.Contains(t, StringComparison.OrdinalIgnoreCase) ||
+                    s.SourceFolder.Contains(t, StringComparison.OrdinalIgnoreCase) ||
+                    s.SessionId.Contains(t, StringComparison.OrdinalIgnoreCase));
             }
 
             return q.ToList();
@@ -117,9 +129,16 @@ public partial class MainViewModel : ObservableObject
         _tray           = tray;
         _notifications  = notifications;
         _pricing        = pricing;
+
+        // First run: seed the well-known default log locations so the app has something
+        // to show immediately, instead of requiring the user to open the Folders page first.
+        DefaultFolderSeeder.SeedIfMissing(_prefs);
+
         Sessions        = new ObservableCollection<CopilotSession>();
         FilterText      = string.Empty;
         ActiveTabFilter = "All";
+        CustomFromDate  = DateTime.Today.AddDays(-7);
+        CustomToDate    = DateTime.Today;
         LastUpdated     = string.Empty;
         ShowCredits             = _prefs.Get("ShowCredits", "false") == "true";
         EnableEclipseEstimation = _prefs.Get("EnableEclipseEstimation", "true") == "true";
@@ -147,11 +166,13 @@ public partial class MainViewModel : ObservableObject
         await _msg.ShowAlertAsync(
             "Cost Estimation",
             "Some sessions cannot provide exact token counts and are marked \u2248:\n\n" +
-            "\u2022 Eclipse \u2014 no token data; input & output are estimated from message length (chars \u00f7 4).\n\n" +
+            "\u2022 Eclipse \u2014 no token data; message text is estimated (chars \u00f7 4) and modeled " +
+            "as a growing conversation, since each turn resends the prior context as input.\n\n" +
             "\u2022 Copilot CLI \u2014 input tokens per turn are not logged by the CLI. " +
             "Costs are estimated from conversation context size at the last compaction point. " +
             "Turns after the final compaction are not accounted for, so the actual bill may be higher " +
-            "(typically 20\u201340 % for long sessions).\n\n" +
+            "(typically 20\u201340 % for long sessions). Sessions that never compact fall back to a " +
+            "message-length estimate (chars \u00f7 4) using the same growing-context model.\n\n" +
             "Estimated figures are approximate and may differ from what the provider charges.",
             "OK");
     }
@@ -281,6 +302,14 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnFilterTextChanged(string value)     { OnPropertyChanged(nameof(FilteredSessions)); RecalcSummary(); }
     partial void OnActiveTabFilterChanged(string value)  { OnPropertyChanged(nameof(FilteredSessions)); RecalcSummary(); }
+    partial void OnCustomFromDateChanged(DateTime value)
+    {
+        if (ActiveTabFilter == "Custom") { OnPropertyChanged(nameof(FilteredSessions)); RecalcSummary(); }
+    }
+    partial void OnCustomToDateChanged(DateTime value)
+    {
+        if (ActiveTabFilter == "Custom") { OnPropertyChanged(nameof(FilteredSessions)); RecalcSummary(); }
+    }
     partial void OnEnableEclipseEstimationChanged(bool value)
     {
         _prefs.Set("EnableEclipseEstimation", value ? "true" : "false");

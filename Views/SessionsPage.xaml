@@ -10,10 +10,10 @@
              Title="Sessions"
              BackgroundColor="{StaticResource SurfaceColor}">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
 
         <!-- Filter bar -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto"
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto"
               ColumnSpacing="8" Padding="16,12,16,0">
             <Button Grid.Column="0"
                     Text="All"
@@ -31,12 +31,16 @@
                     Text="This month"
                     Command="{Binding SetTabFilterCommand}" CommandParameter="Month"
                     Style="{Binding ActiveTabFilter, Converter={StaticResource TabFilterStyleConverter}, ConverterParameter='Month'}" />
-            <SearchBar Grid.Column="4"
-                       Placeholder="Filter by repo or model…"
+            <Button Grid.Column="4"
+                    Text="Custom"
+                    Command="{Binding SetTabFilterCommand}" CommandParameter="Custom"
+                    Style="{Binding ActiveTabFilter, Converter={StaticResource TabFilterStyleConverter}, ConverterParameter='Custom'}" />
+            <SearchBar Grid.Column="5"
+                       Placeholder="Filter by repo, model, branch, folder…"
                        Text="{Binding FilterText}"
                        BackgroundColor="{StaticResource SurfaceSecondaryColor}" />
             <!-- Credits / USD toggle -->
-            <Button Grid.Column="5"
+            <Button Grid.Column="6"
                     Command="{Binding ToggleCreditsCommand}"
                     CornerRadius="8"
                     FontSize="11"
@@ -63,8 +67,17 @@
             </Button>
         </Grid>
 
+        <!-- Custom date range picker (only visible when "Custom" tab is active) -->
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" Padding="16,8,16,0"
+                                IsVisible="{Binding ActiveTabFilter, Converter={StaticResource StringEqualsConverter}, ConverterParameter='Custom'}">
+            <Label Text="From" VerticalOptions="Center" Style="{StaticResource TextTertiaryStyle}" />
+            <DatePicker Date="{Binding CustomFromDate}" FontSize="12" />
+            <Label Text="To" VerticalOptions="Center" Style="{StaticResource TextTertiaryStyle}" />
+            <DatePicker Date="{Binding CustomToDate}" FontSize="12" />
+        </HorizontalStackLayout>
+
         <!-- Header -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,80,68,68,68,72" Padding="24,8,16,0">
+        <Grid Grid.Row="2" ColumnDefinitions="*,80,68,68,68,72" Padding="24,8,16,0">
             <Label Grid.Column="0" Text="Repository / model" FontSize="11" Style="{StaticResource TextTertiaryStyle}" />
             <Label Grid.Column="1" Text="Time"   FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
             <Label Grid.Column="2" Text="Input"  FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
@@ -73,10 +86,10 @@
             <Label Grid.Column="5" Text="Total"  FontSize="11" HorizontalOptions="End" Style="{StaticResource TextTertiaryStyle}" />
         </Grid>
 
-        <BoxView Grid.Row="2" HeightRequest="0.5" Margin="16,4"
+        <BoxView Grid.Row="3" HeightRequest="0.5" Margin="16,4"
                  Color="{StaticResource BorderColor}" />
 
-        <CollectionView Grid.Row="3"
+        <CollectionView Grid.Row="4"
                         x:Name="SessionList"
                         ItemsSource="{Binding FilteredSessions}"
                         SelectionMode="Single"

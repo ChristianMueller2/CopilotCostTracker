@@ -203,6 +203,18 @@ public class SessionParserService : ISessionParserService
                     ? (long)(lastTime - startTime).TotalMilliseconds
                     : 0;
 
+                // Growing-context model (same idea as the Copilot Agent estimator below):
+                // every turn resends the full conversation so far as input. We only have
+                // per-message text (no system-prompt/tool-definition sizes for Eclipse), so
+                // treat the combined user+assistant text as the "conversation" pool that
+                // grows turn by turn and gets increasingly cached rather than re-priced as
+                // fresh input every time.
+                var convTokens = estInputTokens + estOutputTokens;
+                var N          = (long)Math.Max(turnCount, 1);
+                var newInput      = convTokens;                       // written once (first turn)
+                var cacheRead      = convTokens * (N - 1) / 2;         // growing average, reread N-1 times
+                var cacheWrite     = convTokens;                      // cached once for reuse
+
                 var session = new CopilotSession
                 {
                     SessionId    = conversationId,
@@ -215,8 +227,10 @@ public class SessionParserService : ISessionParserService
                     IsEstimated  = true,
                     Usage = new TokenUsage
                     {
-                        InputTokens  = estInputTokens,
-                        OutputTokens = estOutputTokens,
+                        InputTokens      = newInput,
+                        OutputTokens     = estOutputTokens,
+                        CacheReadTokens  = cacheRead,
+                        CacheWriteTokens = cacheWrite,
                     }
                 };
                 _pricing.CalculateCosts(session);
@@ -259,6 +273,10 @@ public class SessionParserService : ISessionParserService
             long estConvTokens = 0;
             bool hasCompStart  = false;
 
+            // Fallback conversation-size estimate (chars ÷ 4) for sessions that never
+            // trigger a compaction — used only when no compaction_start data is available.
+            long fallbackUserTokens = 0;
+
             foreach (var line in lines)
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
@@ -295,6 +313,12 @@ public class SessionParserService : ISessionParserService
                         case "session.model_change":
                             if (string.IsNullOrEmpty(defaultModel))
                                 defaultModel = data?["newModel"]?.GetValue<string>() ?? string.Empty;
+                            break;
+
+                        // Only used as a fallback (see below) when no compaction event ever
+                        // fires, e.g. short sessions that never grow large enough to compact.
+                        case "user.message":
+                            fallbackUserTokens += EstimateTokens(data?["content"]?.GetValue<string>());
                             break;
 
                         case "assistant.message":
@@ -365,6 +389,20 @@ public class SessionParserService : ISessionParserService
                 estCacheRead   = (N - 1) * estSysTokens                    // sys read N-1 times
                                + estConvTokens * (N - 1) / 2;              // growing conv cached
                 estCacheWrite  = estSysTokens + estConvTokens;             // written once each
+            }
+            else if (requestCount > 0)
+            {
+                // Fallback for sessions that never trigger a compaction (typically short
+                // sessions) — without compaction_start/complete we have no exact context
+                // size, so approximate the conversation pool from user message text
+                // (chars ÷ 4) plus the real, API-reported output tokens, and apply the
+                // same growing-context model as above (sys overhead is unknown ⇒ 0).
+                isEstimated     = true;
+                var N           = (long)requestCount;
+                var convTokens  = fallbackUserTokens + outputTokensPerModel.Values.Sum();
+                estInput        = convTokens;                    // new tokens, written once
+                estCacheRead    = convTokens * (N - 1) / 2;       // growing conv cached
+                estCacheWrite   = convTokens;                     // cached once for reuse
             }
 
             // Build the set of model keys across all data sources

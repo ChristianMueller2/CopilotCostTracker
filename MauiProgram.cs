@@ -28,6 +28,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<TrayService>();
         builder.Services.AddSingleton<ITrayService>(sp => sp.GetRequiredService<TrayService>());
         builder.Services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<TrayService>());
+        builder.Services.AddSingleton<IAutostartService, AutostartService>();
 
         // ViewModels
         builder.Services.AddSingleton<MainViewModel>();

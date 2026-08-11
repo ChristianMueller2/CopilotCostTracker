@@ -394,15 +394,15 @@
                                         <Span Text="Copilot CLI" FontAttributes="Bold" />
                                         <Span Text=" — output tokens are exact; input tokens per turn are not logged and are estimated " />
                                         <Span Text="&#x2248;" FontAttributes="Bold" />
-                                        <Span Text=" from context size. Turns after the last compaction are unaccounted for (typically +20&#x2013;40%)." />
+                                        <Span Text=" from context size. Turns after the last compaction are unaccounted for (typically +20&#x2013;40%). Sessions that never compact fall back to a message-length estimate." />
                                         <Span Text="&#10;&#x2022; " />
                                         <Span Text="VS Code" FontAttributes="Bold" />
                                         <Span Text=" — only output (completion) tokens are stored; input and cache tokens are not available." />
                                         <Span Text="&#10;&#x2022; " />
                                         <Span Text="Eclipse" FontAttributes="Bold" />
-                                        <Span Text=" — no token data at all; input &amp; output are estimated " />
+                                        <Span Text=" — no token data at all; message length is estimated " />
                                         <Span Text="&#x2248;" FontAttributes="Bold" />
-                                        <Span Text=" from message length (chars &#247; 4)." />
+                                        <Span Text=" (chars &#247; 4) and modeled as a growing conversation, since each turn resends the prior context." />
                                     </FormattedString>
                                 </Label.FormattedText>
                             </Label>
@@ -438,10 +438,23 @@
                             Command="{Binding SetTabFilterCommand}"
                             CommandParameter="Month"
                             Style="{Binding ActiveTabFilter, Converter={StaticResource TabFilterStyleConverter}, ConverterParameter='Month'}" />
-                    <SearchBar Placeholder="Filter by repo or model…"
+                    <Button Text="Custom"
+                            Command="{Binding SetTabFilterCommand}"
+                            CommandParameter="Custom"
+                            Style="{Binding ActiveTabFilter, Converter={StaticResource TabFilterStyleConverter}, ConverterParameter='Custom'}" />
+                    <SearchBar Placeholder="Filter by repo, model, branch, folder…"
                                Text="{Binding FilterText}"
                                HorizontalOptions="Fill"
                                BackgroundColor="{StaticResource SurfaceSecondaryColor}" />
+                </HorizontalStackLayout>
+
+                <!-- Custom date range picker (only visible when "Custom" tab is active) -->
+                <HorizontalStackLayout Spacing="8"
+                                        IsVisible="{Binding ActiveTabFilter, Converter={StaticResource StringEqualsConverter}, ConverterParameter='Custom'}">
+                    <Label Text="From" VerticalOptions="Center" Style="{StaticResource TextTertiaryStyle}" />
+                    <DatePicker Date="{Binding CustomFromDate}" FontSize="12" />
+                    <Label Text="To" VerticalOptions="Center" Style="{StaticResource TextTertiaryStyle}" />
+                    <DatePicker Date="{Binding CustomToDate}" FontSize="12" />
                 </HorizontalStackLayout>
 
                 <!-- Sessions header -->
