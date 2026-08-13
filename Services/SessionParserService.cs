@@ -1,4 +1,5 @@
 // Services/SessionParserService.cs
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CopilotCostTracker.Models;
@@ -77,7 +78,7 @@ public class SessionParserService : ISessionParserService
                         var data = node["data"];
                         var sessionId    = data?["sessionId"]?.GetValue<string>() ?? id;
                         var startTimeStr = data?["startTime"]?.GetValue<string>();
-                        var startTime    = DateTime.TryParse(startTimeStr, out var dt) ? dt : DateTime.MinValue;
+                        var startTime    = DateTime.TryParse(startTimeStr, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt) ? dt : DateTime.MinValue;
                         var repo         = data?["context"]?["repository"]?.GetValue<string>() ?? string.Empty;
                         var branch       = data?["context"]?["branch"]?.GetValue<string>() ?? string.Empty;
                         startInfo = (sessionId, startTime, repo, branch);
@@ -155,8 +156,8 @@ public class SessionParserService : ISessionParserService
 
                     var type  = node["type"]?.GetValue<string>();
                     var tsRaw = node["timestamp"]?.GetValue<string>();
-                    if (DateTime.TryParse(tsRaw, null,
-                            System.Globalization.DateTimeStyles.RoundtripKind, out var ts))
+                    if (DateTime.TryParse(tsRaw, CultureInfo.InvariantCulture,
+                            DateTimeStyles.RoundtripKind, out var ts))
                     {
                         if (startTime == DateTime.MinValue) startTime = ts;
                         if (ts > lastTime) lastTime = ts;
@@ -287,8 +288,8 @@ public class SessionParserService : ISessionParserService
 
                     var type  = node["type"]?.GetValue<string>();
                     var tsRaw = node["timestamp"]?.GetValue<string>();
-                    if (DateTime.TryParse(tsRaw, null,
-                            System.Globalization.DateTimeStyles.RoundtripKind, out var ts))
+                    if (DateTime.TryParse(tsRaw, CultureInfo.InvariantCulture,
+                            DateTimeStyles.RoundtripKind, out var ts))
                     {
                         var tsLocal = ts.ToLocalTime();
                         if (startTime == DateTime.MinValue) startTime = tsLocal;
@@ -301,8 +302,8 @@ public class SessionParserService : ISessionParserService
                         case "session.start":
                             sessionId = data?["sessionId"]?.GetValue<string>() ?? string.Empty;
                             var startStr = data?["startTime"]?.GetValue<string>();
-                            if (DateTime.TryParse(startStr, null,
-                                    System.Globalization.DateTimeStyles.RoundtripKind, out var dt))
+                            if (DateTime.TryParse(startStr, CultureInfo.InvariantCulture,
+                                    DateTimeStyles.RoundtripKind, out var dt))
                                 startTime = dt.ToLocalTime();
                             repo   = data?["context"]?["gitRoot"]?.GetValue<string>()
                                   ?? data?["context"]?["cwd"]?.GetValue<string>()
@@ -601,7 +602,7 @@ public class SessionParserService : ISessionParserService
 
                     var type      = node["type"]?.GetValue<string>() ?? "unknown";
                     var tsRaw     = node["timestamp"]?.GetValue<string>();
-                    var timestamp = DateTime.TryParse(tsRaw, out var dt) ? dt.ToLocalTime() : DateTime.MinValue;
+                    var timestamp = DateTime.TryParse(tsRaw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt) ? dt.ToLocalTime() : DateTime.MinValue;
                     var data      = node["data"];
 
                     var (category, summary, detail) = BuildEventInfo(type, data);

@@ -1,0 +1,52 @@
+name: Build MSIX (AOT)
+
+on:
+  push:
+    branches: [main, "christianmueller2/**"]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Build configuration
+        required: false
+        default: Release
+        type: choice
+        options: [Release, Debug]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x"
+
+      - name: Add MAUI workload
+        run: dotnet workload install maui-windows
+
+      - name: Restore
+        run: dotnet restore -r win-x64
+
+      - name: Publish AOT MSIX
+        run: |
+          dotnet publish `
+            -f net10.0-windows10.0.19041.0 `
+            -c ${{ inputs.configuration || 'Release' }} `
+            -r win-x64 `
+            /p:WindowsPackageType=MSIX `
+            /p:AppxPackageSigningEnabled=false `
+            /p:AppxPackageDir=artifacts\ `
+            --no-restore
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CopilotCostTracker-MSIX-${{ github.ref_name }}
+          path: artifacts/**/*.msix
+          if-no-files-found: error
+          retention-days: 30
