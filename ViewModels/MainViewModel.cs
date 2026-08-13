@@ -85,7 +85,10 @@ public partial class MainViewModel : ObservableObject
             if (ActiveTabFilter == "Today")
                 q = q.Where(s => s.StartTime.Date == DateTime.Today);
             else if (ActiveTabFilter == "Week")
-                q = q.Where(s => s.StartTime >= DateTime.Today.AddDays(-7));
+            {
+                var startOfWeek = DateTime.Today.AddDays(-((int)DateTime.Today.DayOfWeek + 6) % 7);
+                q = q.Where(s => s.StartTime.Date >= startOfWeek && s.StartTime.Date <= DateTime.Today);
+            }
             else if (ActiveTabFilter == "Month")
                 q = q.Where(s => s.StartTime >= new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1));
             else if (ActiveTabFilter == "Custom")
@@ -136,7 +139,7 @@ public partial class MainViewModel : ObservableObject
 
         Sessions        = new ObservableCollection<CopilotSession>();
         FilterText      = string.Empty;
-        ActiveTabFilter = "All";
+        ActiveTabFilter = "Week";
         CustomFromDate  = DateTime.Today.AddDays(-7);
         CustomToDate    = DateTime.Today;
         LastUpdated     = string.Empty;

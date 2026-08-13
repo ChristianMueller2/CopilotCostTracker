@@ -129,7 +129,7 @@
 
             <Border StrokeShape="RoundRectangle 10"
                     BackgroundColor="{StaticResource SurfaceSecondaryColor}"
-                    Padding="16,14" Margin="0,0,0,6">
+                    Padding="16,14" Margin="0,0,0,20">
                 <Grid RowDefinitions="Auto,12,Auto,12,Auto,16,Auto,Auto"
                       ColumnDefinitions="*,Auto">
 
@@ -199,6 +199,22 @@
                            Margin="0,4,0,0" />
 
                 </Grid>
+            </Border>
+
+            <!-- ── App version ─────────────────────────────────────────────── -->
+            <Border StrokeShape="RoundRectangle 10"
+                    BackgroundColor="{StaticResource SurfaceSecondaryColor}"
+                    Padding="14,10"
+                    Margin="0,0,0,8">
+                <HorizontalStackLayout HorizontalOptions="End" Spacing="6">
+                    <Label Text="App version"
+                           FontSize="12"
+                           Style="{StaticResource TextTertiaryStyle}" />
+                    <Label Text="{Binding AppVersionText}"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource AccentBlueColor}" />
+                </HorizontalStackLayout>
             </Border>
 
         </VerticalStackLayout>

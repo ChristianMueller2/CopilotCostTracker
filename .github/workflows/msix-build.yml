@@ -1,0 +1,145 @@
+name: Build MSIX
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PROJECT: CopilotCostTracker.csproj
+  TFM: net10.0-windows10.0.19041.0
+  CERT_SUBJECT: CN=CopilotCostTracker
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui-windows
+
+      - name: Decode certificate
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.WINDOWS_CERTIFICATE }}")
+          [IO.File]::WriteAllBytes("${{ runner.temp }}\CopilotCostTracker.pfx", $bytes)
+        shell: pwsh
+
+      - name: Import certificate into store
+        run: |
+          $pwd = ConvertTo-SecureString "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" -AsPlainText -Force
+          Import-PfxCertificate `
+            -FilePath "${{ runner.temp }}\CopilotCostTracker.pfx" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -Password $pwd
+        shell: pwsh
+
+      - name: Get certificate thumbprint
+        id: cert
+        run: |
+          $thumb = (Get-ChildItem Cert:\CurrentUser\My |
+            Where-Object { $_.Subject -eq "${{ env.CERT_SUBJECT }}" } |
+            Sort-Object NotAfter -Descending |
+            Select-Object -First 1).Thumbprint
+
+          if (-not $thumb) {
+            throw "No certificate found for subject '${{ env.CERT_SUBJECT }}'."
+          }
+
+          "THUMBPRINT=$thumb" >> $env:GITHUB_OUTPUT
+          Write-Host "Thumbprint: $thumb"
+        shell: pwsh
+
+      - name: Restore
+        run: dotnet restore ${{ env.PROJECT }}
+
+      - name: Publish MSIX
+        run: |
+          dotnet publish ${{ env.PROJECT }} `
+            -f ${{ env.TFM }} `
+            -c Release `
+            -p:Platform=x64 `
+            -p:WindowsPackageType=MSIX `
+            -p:AppxPackageSigningEnabled=true `
+            -p:PackageCertificateThumbprint="${{ steps.cert.outputs.THUMBPRINT }}" `
+            -p:PackageCertificateKeyFile="${{ runner.temp }}\CopilotCostTracker.pfx" `
+            -p:PackageCertificatePassword="${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" `
+            -p:AppxBundle=Never `
+            -p:UapAppxPackageBuildMode=SideloadOnly `
+            -p:GenerateAppxPackageOnBuild=true
+        shell: pwsh
+
+      - name: Collect artifacts
+        id: msix
+        run: |
+          $msix = Get-ChildItem -Recurse -Filter "*.msix" |
+            Where-Object { $_.Name -notmatch "^(Microsoft\.|VCLibs)" } |
+            Select-Object -First 1
+
+          if (-not $msix) {
+            Write-Host "All .msix files found:"
+            Get-ChildItem -Recurse -Filter "*.msix" | ForEach-Object { Write-Host "  $($_.FullName)" }
+            throw "No app .msix file found after publish."
+          }
+
+          Write-Host "App MSIX: $($msix.FullName)"
+
+          $cerPath = "${{ runner.temp }}\CopilotCostTracker.cer"
+          Export-Certificate `
+            -Cert "Cert:\CurrentUser\My\${{ steps.cert.outputs.THUMBPRINT }}" `
+            -FilePath $cerPath -Type CERT | Out-Null
+
+          $stage = "${{ runner.temp }}\msix-release"
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          Copy-Item $msix.FullName "$stage\$($msix.Name)"
+          Copy-Item $cerPath "$stage\CopilotCostTracker.cer"
+
+          @(
+            '# CopilotCostTracker - Installation',
+            '',
+            '## 1. Trust the certificate (once per machine)',
+            'Before installing the MSIX, import the certificate as a trusted root or trusted publisher:',
+            '',
+            '  1. Double-click CopilotCostTracker.cer',
+            '  2. Choose "Local Computer" and continue',
+            '  3. Select "Trusted Root Certification Authorities"',
+            '  4. Finish the wizard',
+            '',
+            '## 2. Install the MSIX',
+            '  - Double-click the .msix file to install it',
+            '  - Or install via PowerShell as Administrator:',
+            '      Add-AppPackage -Path .\CopilotCostTracker_*.msix'
+          ) -join [Environment]::NewLine | Set-Content "$stage\README.md"
+
+          "STAGE=$stage" >> $env:GITHUB_OUTPUT
+          "MSIX_PATH=$($msix.FullName)" >> $env:GITHUB_OUTPUT
+          "Staged to: $stage"
+        shell: pwsh
+
+      - name: Upload MSIX + Certificate
+        uses: actions/upload-artifact@v4
+        with:
+          name: CopilotCostTracker-MSIX
+          path: ${{ steps.msix.outputs.STAGE }}
+          retention-days: 30
+
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.msix.outputs.STAGE }}/*.msix
+            ${{ steps.msix.outputs.STAGE }}/CopilotCostTracker.cer
+            ${{ steps.msix.outputs.STAGE }}/README.md
+          generate_release_notes: true

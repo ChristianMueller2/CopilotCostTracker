@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CopilotCostTracker.Services;
+using Microsoft.Maui.ApplicationModel;
 
 namespace CopilotCostTracker.ViewModels;
 
@@ -17,6 +18,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] public partial string MonthlyLimitText     { get; set; }
     [ObservableProperty] public partial string SaveConfirmation      { get; set; }
 
+    public string AppVersionText => $"Version {AppInfo.Current.VersionString}";
     public bool HasSaveConfirmation => !string.IsNullOrEmpty(SaveConfirmation);
 
     public SettingsViewModel(

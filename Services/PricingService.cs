@@ -48,6 +48,7 @@ public class PricingService
         // GitHub fine-tuned
         new() { Provider = "GitHub",    ModelKey = "Raptor mini",       InputPer1M = 0.25m,  CachedInputPer1M = 0.025m, CacheWritePer1M = 0m,     OutputPer1M = 2.00m  },
         // Microsoft
+        new() { Provider = "Microsoft", ModelKey = "MAI-Code-1.1-Flash", InputPer1M = 0.20m,  CachedInputPer1M = 0.02m,  CacheWritePer1M = 0m,     OutputPer1M = 1.20m  },
         new() { Provider = "Microsoft", ModelKey = "MAI-Code-1-Flash",  InputPer1M = 0.75m,  CachedInputPer1M = 0.075m, CacheWritePer1M = 0m,     OutputPer1M = 4.50m  },
         // xAI
         new() { Provider = "xAI",       ModelKey = "Grok 4.5",          InputPer1M = 2.00m,  CachedInputPer1M = 0.50m,  CacheWritePer1M = 0m,     OutputPer1M = 6.00m  },
