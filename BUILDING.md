@@ -77,7 +77,7 @@ Export-PfxCertificate -Cert $cert -FilePath "dist\CopilotCostTracker.pfx" -Passw
 The certificate subject must match the publisher in `Platforms/Windows/Package.appxmanifest` exactly:
 
 ```xml
-<Identity Name="CopilotCostTracker" Publisher="CN=CopilotCostTracker" Version="1.1.3.0" />
+<Identity Name="CopilotCostTracker" Publisher="CN=CopilotCostTracker" Version="1.4.0.0" />
 ```
 
 > The workflow imports the `.pfx` into the build runner, signs the package, exports the `.cer`, and uploads both files to the GitHub release as release assets.
@@ -148,14 +148,14 @@ Because the package is self-signed, the certificate must be trusted on the targe
 Version numbers are controlled in `CopilotCostTracker.csproj`:
 
 ```xml
-<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+<ApplicationDisplayVersion>1.4</ApplicationDisplayVersion>
 <ApplicationVersion>1</ApplicationVersion>
 ```
 
 And in `Platforms/Windows/Package.appxmanifest`:
 
 ```xml
-<Identity Name="CopilotCostTracker" Publisher="CN=CopilotCostTracker" Version="1.0.0.0" />
+<Identity Name="CopilotCostTracker" Publisher="CN=CopilotCostTracker" Version="1.4.0.0" />
 ```
 
 Both values must be kept in sync before building a new release.
