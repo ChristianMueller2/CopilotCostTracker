@@ -10,7 +10,7 @@ namespace CopilotCostTracker.Services;
 public sealed class TrayService : ITrayService, INotificationService, IDisposable
 {
     // ── Singleton ref used by the static WndProc ─────────────────────────────
-    private static TrayService? _instance;
+    private static volatile TrayService? _instance;
 
     // ── Thread state ─────────────────────────────────────────────────────────
     private Thread?  _thread;
@@ -53,6 +53,7 @@ public sealed class TrayService : ITrayService, INotificationService, IDisposabl
     private const uint CMD_OPEN = 1u;
     private const uint CMD_QUIT = 2u;
     private const string WndClassName = "CctTray";
+    private static readonly IntPtr WndClassNamePtr = Marshal.StringToHGlobalUni(WndClassName);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Native structs
@@ -289,8 +290,11 @@ public sealed class TrayService : ITrayService, INotificationService, IDisposabl
 
     public void Dispose()
     {
+        var thread = _thread;
         if (_hWnd != IntPtr.Zero)
             PostMessageW(_hWnd, WM_TRAY_QUIT, IntPtr.Zero, IntPtr.Zero);
+        thread?.Join();
+        _thread = null;
         _instance = null;
     }
 
@@ -433,17 +437,14 @@ public sealed class TrayService : ITrayService, INotificationService, IDisposabl
 
     private unsafe void RegisterWindowClass()
     {
-        fixed (char* pName = WndClassName)
+        var wc = new WNDCLASSEXW
         {
-            var wc = new WNDCLASSEXW
-            {
-                cbSize        = (uint)sizeof(WNDCLASSEXW),
-                lpfnWndProc   = &WndProcStatic,
-                hInstance     = GetModuleHandleW(null),
-                lpszClassName = (IntPtr)pName,
-            };
-            RegisterClassExW(&wc);
-        }
+            cbSize        = (uint)sizeof(WNDCLASSEXW),
+            lpfnWndProc   = &WndProcStatic,
+            hInstance     = GetModuleHandleW(null),
+            lpszClassName = WndClassNamePtr,
+        };
+        RegisterClassExW(&wc);
     }
 
     /// <summary>

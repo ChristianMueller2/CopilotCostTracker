@@ -45,6 +45,45 @@ Export-Certificate `
 
 ---
 
+## GitHub Actions secret setup for signed builds
+
+The release workflow in `.github/workflows/msix-build.yml` expects two repository secrets:
+
+- `WINDOWS_CERTIFICATE` — Base64-encoded contents of the `.pfx` file.
+- `WINDOWS_CERTIFICATE_PASSWORD` — The password used when exporting the `.pfx`.
+
+Generate the certificate locally once and then add both values in GitHub:
+
+1. Open GitHub → Repository → Settings → Secrets and variables → Actions.
+2. Click `New repository secret`.
+3. Create `WINDOWS_CERTIFICATE` and paste the Base64 output from:
+
+```powershell
+$cert = New-SelfSignedCertificate `
+    -Type Custom `
+    -Subject "CN=CopilotCostTracker" `
+    -KeyUsage DigitalSignature `
+    -FriendlyName "CopilotCostTracker MSIX Signing" `
+    -CertStoreLocation "Cert:\CurrentUser\My" `
+    -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+
+$pwd = ConvertTo-SecureString -String "YourStrongPassword" -Force -AsPlainText
+Export-PfxCertificate -Cert $cert -FilePath "dist\CopilotCostTracker.pfx" -Password $pwd
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("dist\CopilotCostTracker.pfx")) | Set-Clipboard
+```
+
+4. Create `WINDOWS_CERTIFICATE_PASSWORD` and paste the same password (`YourStrongPassword`).
+
+The certificate subject must match the publisher in `Platforms/Windows/Package.appxmanifest` exactly:
+
+```xml
+<Identity Name="CopilotCostTracker" Publisher="CN=CopilotCostTracker" Version="1.1.3.0" />
+```
+
+> The workflow imports the `.pfx` into the build runner, signs the package, exports the `.cer`, and uploads both files to the GitHub release as release assets.
+
+---
+
 ## Step 2 — Build the MSIX
 
 Run `dotnet publish` with `WindowsPackageType=MSIX` and the certificate thumbprint:

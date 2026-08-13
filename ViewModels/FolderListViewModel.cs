@@ -18,16 +18,6 @@ public partial class FolderListViewModel : ObservableObject
     private readonly INavigationService    _nav;
     private readonly MainViewModel         _main;
 
-    /// <summary>Default paths to auto-add on first launch (if they exist).</summary>
-    private static IEnumerable<string> DefaultPaths()
-    {
-        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        yield return Path.Combine(profile,  ".copilot", "session-state");
-        yield return Path.Combine(appData,  "Code", "User", "workspaceStorage");
-        yield return Path.Combine(profile,  ".copilot", "eclipse");
-    }
-
     [ObservableProperty] public partial ObservableCollection<WatchedFolder> WatchedFolders { get; set; }
 
     public bool HasNoFolders => WatchedFolders.Count == 0;
@@ -61,6 +51,10 @@ public partial class FolderListViewModel : ObservableObject
 
     private void LoadFolders()
     {
+        // First run: seed the well-known default log locations (no-op if already seeded,
+        // e.g. by MainViewModel at app startup, or if the user already has folders saved).
+        DefaultFolderSeeder.SeedIfMissing(_prefs);
+
         var list = JsonSerializer.Deserialize(
             _prefs.Get("WatchedFolders", "[]"),
             AppJsonContext.Default.WatchedFolderArray) ?? [];
@@ -71,25 +65,8 @@ public partial class FolderListViewModel : ObservableObject
             OnPropertyChanged(nameof(HasFolders));
         };
 
-        // On first launch (no folders persisted) auto-add the known default paths.
-        if (WatchedFolders.Count == 0)
-            AddDefaultFolders();
-
         OnPropertyChanged(nameof(HasNoFolders));
         OnPropertyChanged(nameof(HasFolders));
-    }
-
-    private void AddDefaultFolders()
-    {
-        bool added = false;
-        foreach (var path in DefaultPaths())
-        {
-            if (!Directory.Exists(path)) continue;
-            if (WatchedFolders.Any(f => f.Path.Equals(path, StringComparison.OrdinalIgnoreCase))) continue;
-            WatchedFolders.Add(new WatchedFolder { Path = path, IncludeSubdirectories = true });
-            added = true;
-        }
-        if (added) Persist();
     }
 
     private void Persist()

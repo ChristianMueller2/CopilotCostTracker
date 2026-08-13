@@ -47,3 +47,4 @@ desktop.ini
 
 # Secrets / certificates with private key
 dist/*.pfx
+dist/build-log.txt

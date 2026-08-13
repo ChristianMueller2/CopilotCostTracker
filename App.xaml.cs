@@ -1,4 +1,5 @@
 // App.xaml.cs
+using System.Linq;
 using CopilotCostTracker.Services;
 
 namespace CopilotCostTracker;
@@ -40,6 +41,11 @@ public partial class App : Application
                 args.Cancel = true;
                 appWindow.Hide();
             };
+
+            // Launched via Windows autostart (Run key) with --minimized: stay in the
+            // tray instead of popping the main window in front of the user at sign-in.
+            if (Environment.GetCommandLineArgs().Contains("--minimized"))
+                appWindow.Hide();
         };
 
         _trayService?.Initialize(ShowWindow, ExitApp);

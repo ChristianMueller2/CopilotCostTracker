@@ -24,6 +24,7 @@
             <conv:FolderIndexColorConverter    x:Key="FolderIndexColorConverter" />
             <conv:TabFilterStyleConverter      x:Key="TabFilterStyleConverter" />
             <conv:EventCategoryColorConverter  x:Key="EventCategoryColorConverter" />
+            <conv:StringEqualsConverter        x:Key="StringEqualsConverter" />
 
             <!-- ── Text styles ────────────────────────────────────────────────── -->
             <Style x:Key="TextPrimaryStyle" TargetType="Label">
